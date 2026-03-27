@@ -1,10 +1,11 @@
 /** Change this to set the admin password (plain text in this file). */
-const ADMIN_PASSWORD = 'admin';
+const ADMIN_PASSWORD = 'jnu8484';
 
 const STORAGE_KEY = 'leaderboard-state-v1';
 const ADMIN_SESSION_KEY = 'leaderboard-admin-session';
 const IDB_NAME = 'leaderboard-txt-sync';
 const IDB_STORE = 'meta';
+const API_STATE_URL = '/api/state';
 
 /** @type {FileSystemFileHandle | null} */
 let fileHandle = null;
@@ -25,19 +26,19 @@ const defaultState = () => ({
     'Teams compete in timed rounds. Scores reflect correct answers and speed bonuses. Final rankings are updated live.',
   teams: [
     {
-      id: newId(),
+      id: 'team-north-star',
       name: 'North Star',
       members: ['Alex Kim', 'Jordan Lee', 'Sam Patel'],
       score: 42,
     },
     {
-      id: newId(),
+      id: 'team-blue-shift',
       name: 'Blue Shift',
       members: ['Riley Chen', 'Morgan Wu', 'Casey Ortiz'],
       score: 38,
     },
     {
-      id: newId(),
+      id: 'team-vertex',
       name: 'Vertex',
       members: ['Taylor Brooks', 'Jamie Singh', 'Quinn Moore'],
       score: 35,
@@ -45,34 +46,70 @@ const defaultState = () => ({
   ],
 });
 
-function loadState() {
+function normalizeState(parsed) {
+  const fallback = defaultState();
+  if (!parsed || typeof parsed !== 'object') return fallback;
+  const rawTeams = Array.isArray(parsed.teams) ? parsed.teams : fallback.teams;
+  return {
+    quizTitle: parsed.quizTitle ?? fallback.quizTitle,
+    quizDescription: parsed.quizDescription ?? fallback.quizDescription,
+    teams: rawTeams.map((t) => ({
+      id: t.id || newId(),
+      name: String(t.name ?? ''),
+      members: Array.isArray(t.members) ? t.members.slice(0, 3).map(String) : ['', '', ''],
+      score: Number(t.score) || 0,
+    })),
+  };
+}
+
+function loadStateFromLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    const parsed = JSON.parse(raw);
-    if (!parsed.teams || !Array.isArray(parsed.teams)) return defaultState();
-    return {
-      quizTitle: parsed.quizTitle ?? defaultState().quizTitle,
-      quizDescription: parsed.quizDescription ?? defaultState().quizDescription,
-      teams: parsed.teams.map((t) => ({
-        id: t.id || newId(),
-        name: String(t.name ?? ''),
-        members: Array.isArray(t.members)
-          ? t.members.slice(0, 3).map(String)
-          : ['', '', ''],
-        score: Number(t.score) || 0,
-      })),
-    };
+    return normalizeState(JSON.parse(raw));
   } catch {
     return defaultState();
   }
 }
 
-const state = loadState();
+async function loadStateFromApi() {
+  const res = await fetch(API_STATE_URL, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  const data = await res.json();
+  return normalizeState(data);
+}
 
-function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  scheduleTxtFileWrite(state);
+async function loadState() {
+  try {
+    return await loadStateFromApi();
+  } catch (e) {
+    console.warn('API failed, falling back to local state', e);
+    return loadStateFromLocal();
+  }
+}
+
+let state = defaultState();
+
+function saveStateToLocal(nextState) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+  scheduleTxtFileWrite(nextState);
+}
+
+async function saveStateToApi(nextState) {
+  const res = await fetch(API_STATE_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ password: ADMIN_PASSWORD, state: nextState }),
+  });
+  if (!res.ok) {
+    const msg = await res.text().catch(() => '');
+    throw new Error(`Save failed (${res.status}): ${msg || 'unknown error'}`);
+  }
+}
+
+async function saveState(nextState) {
+  await saveStateToApi(nextState);
+  saveStateToLocal(nextState);
 }
 
 function openIdb() {
@@ -340,11 +377,18 @@ function render(state, mode, adminUnlocked) {
     const descInput = document.getElementById('quiz-desc');
     titleInput.addEventListener('input', () => {
       state.quizTitle = titleInput.value;
-      saveState(state);
+      // Save immediately so viewers load the shared state after refresh.
+      saveState(state).catch((e) => {
+        console.error('Save failed', e);
+        window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+      });
     });
     descInput.addEventListener('input', () => {
       state.quizDescription = descInput.value;
-      saveState(state);
+      saveState(state).catch((e) => {
+        console.error('Save failed', e);
+        window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+      });
     });
 
     document.getElementById('btn-export').addEventListener('click', () => exportExcel(state));
@@ -361,7 +405,10 @@ function render(state, mode, adminUnlocked) {
           const team = state.teams.find((t) => t.id === id);
           if (team) {
             team.name = nameInput.value;
-            saveState(state);
+            saveState(state).catch((e) => {
+              console.error('Save failed', e);
+              window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+            });
           }
         });
       }
@@ -372,7 +419,10 @@ function render(state, mode, adminUnlocked) {
           const idx = Number(inp.dataset.m);
           while (team.members.length < 3) team.members.push('');
           team.members[idx] = inp.value;
-          saveState(state);
+          saveState(state).catch((e) => {
+            console.error('Save failed', e);
+            window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+          });
         });
       });
       row.querySelectorAll('.stepper button').forEach((btn) => {
@@ -383,7 +433,10 @@ function render(state, mode, adminUnlocked) {
           const step = Math.max(1, Math.floor(Number(stepInp.value) || 1));
           const sign = btn.dataset.delta === '1' ? 1 : -1;
           team.score += sign * step;
-          saveState(state);
+          saveState(state).catch((e) => {
+            console.error('Save failed', e);
+            window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+          });
           render(state, mode, adminUnlocked);
         });
       });
@@ -509,5 +562,6 @@ function exportExcel(state) {
 (async () => {
   await restoreTxtFileHandle();
   const adminOk = isAdminSession();
+  state = await loadState();
   render(state, adminOk ? 'admin' : 'viewer', adminOk);
 })();
