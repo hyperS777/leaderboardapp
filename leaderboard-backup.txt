@@ -1,0 +1,52 @@
+LEADERBOARD BACKUP
+Saved: 2026-03-22T19:01:55.802Z
+
+Title: Megawhats Quiz-O-Lympics
+Description:
+Megawhats Quiz-O-lympics
+
+--- TEAMS ---
+Rank 1 | Blue Quizzers | 4 pts
+  Ibad | Mohammad | Hussain
+Rank 2 | Team Vortex | 2 pts
+  Priyanshu  | Kumar  | Ajariwal
+Rank 3 | Quizzically | 1 pts
+  Sandeep | Kumar | Saw
+
+--- JSON (for recovery) ---
+{
+  "quizTitle": "Megawhats Quiz-O-Lympics",
+  "quizDescription": "Megawhats Quiz-O-lympics",
+  "teams": [
+    {
+      "id": "28f6ba8c-47d5-4804-b3ab-a4bbf25f8301",
+      "name": "Quizzically",
+      "members": [
+        "Sandeep",
+        "Kumar",
+        "Saw"
+      ],
+      "score": 1
+    },
+    {
+      "id": "4e6b1806-d4ac-434b-81d5-df41e4718d93",
+      "name": "Blue Quizzers",
+      "members": [
+        "Ibad",
+        "Mohammad",
+        "Hussain"
+      ],
+      "score": 4
+    },
+    {
+      "id": "afe83bd1-a408-42e6-aab5-d8ec69f37a92",
+      "name": "Team Vortex",
+      "members": [
+        "Priyanshu ",
+        "Kumar ",
+        "Ajariwal"
+      ],
+      "score": 2
+    }
+  ]
+}

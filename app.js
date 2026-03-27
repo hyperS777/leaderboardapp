@@ -1,0 +1,513 @@
+/** Change this to set the admin password (plain text in this file). */
+const ADMIN_PASSWORD = 'admin';
+
+const STORAGE_KEY = 'leaderboard-state-v1';
+const ADMIN_SESSION_KEY = 'leaderboard-admin-session';
+const IDB_NAME = 'leaderboard-txt-sync';
+const IDB_STORE = 'meta';
+
+/** @type {FileSystemFileHandle | null} */
+let fileHandle = null;
+let txtWriteTimer = null;
+
+/** Last UI mode for re-render after linking a save file */
+const lastRender = { mode: 'viewer', adminUnlocked: false };
+
+function newId() {
+  return crypto.randomUUID
+    ? crypto.randomUUID()
+    : `id-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+const defaultState = () => ({
+  quizTitle: 'Annual Knowledge Quiz',
+  quizDescription:
+    'Teams compete in timed rounds. Scores reflect correct answers and speed bonuses. Final rankings are updated live.',
+  teams: [
+    {
+      id: newId(),
+      name: 'North Star',
+      members: ['Alex Kim', 'Jordan Lee', 'Sam Patel'],
+      score: 42,
+    },
+    {
+      id: newId(),
+      name: 'Blue Shift',
+      members: ['Riley Chen', 'Morgan Wu', 'Casey Ortiz'],
+      score: 38,
+    },
+    {
+      id: newId(),
+      name: 'Vertex',
+      members: ['Taylor Brooks', 'Jamie Singh', 'Quinn Moore'],
+      score: 35,
+    },
+  ],
+});
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    if (!parsed.teams || !Array.isArray(parsed.teams)) return defaultState();
+    return {
+      quizTitle: parsed.quizTitle ?? defaultState().quizTitle,
+      quizDescription: parsed.quizDescription ?? defaultState().quizDescription,
+      teams: parsed.teams.map((t) => ({
+        id: t.id || newId(),
+        name: String(t.name ?? ''),
+        members: Array.isArray(t.members)
+          ? t.members.slice(0, 3).map(String)
+          : ['', '', ''],
+        score: Number(t.score) || 0,
+      })),
+    };
+  } catch {
+    return defaultState();
+  }
+}
+
+const state = loadState();
+
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleTxtFileWrite(state);
+}
+
+function openIdb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(IDB_STORE)) {
+        req.result.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbPut(handle) {
+  return openIdb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(handle, 'savefile');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      })
+  );
+}
+
+function idbGet() {
+  return openIdb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const r = tx.objectStore(IDB_STORE).get('savefile');
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      })
+  );
+}
+
+function idbDelete() {
+  return openIdb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete('savefile');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      })
+  );
+}
+
+function formatStateAsTxt(state) {
+  const ranked = sortedTeams(state.teams);
+  let lastScore = null;
+  let rank = 0;
+  const lines = [];
+  lines.push('LEADERBOARD BACKUP');
+  lines.push(`Saved: ${new Date().toISOString()}`);
+  lines.push('');
+  lines.push(`Title: ${state.quizTitle}`);
+  lines.push('Description:');
+  lines.push(state.quizDescription);
+  lines.push('');
+  lines.push('--- TEAMS ---');
+  ranked.forEach((t, i) => {
+    if (t.score !== lastScore) {
+      rank = i + 1;
+      lastScore = t.score;
+    }
+    const m = padMembers(t.members);
+    lines.push(`Rank ${rank} | ${t.name} | ${t.score} pts`);
+    lines.push(`  ${m[0]} | ${m[1]} | ${m[2]}`);
+  });
+  lines.push('');
+  lines.push('--- JSON (for recovery) ---');
+  lines.push(JSON.stringify(state, null, 2));
+  return `${lines.join('\n')}\n`;
+}
+
+async function writeToTxtFile(handle, state) {
+  const text = formatStateAsTxt(state);
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
+function scheduleTxtFileWrite(state) {
+  if (!fileHandle) return;
+  clearTimeout(txtWriteTimer);
+  txtWriteTimer = setTimeout(() => {
+    txtWriteTimer = null;
+    writeToTxtFile(fileHandle, state).catch((e) => console.error('Save to .txt failed', e));
+  }, 150);
+}
+
+async function restoreTxtFileHandle() {
+  if (!('showSaveFilePicker' in window)) return;
+  try {
+    const h = await idbGet();
+    if (!h) return;
+    let perm = await h.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') {
+      perm = await h.requestPermission({ mode: 'readwrite' });
+    }
+    if (perm === 'granted') fileHandle = h;
+  } catch (e) {
+    console.warn('Could not restore .txt file handle', e);
+  }
+}
+
+async function connectTxtFile() {
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: 'leaderboard-backup.txt',
+      types: [{ description: 'Text file', accept: { 'text/plain': ['.txt'] } }],
+    });
+    fileHandle = handle;
+    await idbPut(handle);
+    await writeToTxtFile(handle, state);
+    render(state, lastRender.mode, lastRender.adminUnlocked);
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error(e);
+  }
+}
+
+async function disconnectTxtFile() {
+  fileHandle = null;
+  clearTimeout(txtWriteTimer);
+  txtWriteTimer = null;
+  try {
+    await idbDelete();
+  } catch (e) {
+    console.warn(e);
+  }
+  render(state, lastRender.mode, lastRender.adminUnlocked);
+}
+
+function fsApiSupported() {
+  return typeof window.showSaveFilePicker === 'function';
+}
+
+function isAdminSession() {
+  return sessionStorage.getItem(ADMIN_SESSION_KEY) === '1';
+}
+
+function setAdminSession(ok) {
+  if (ok) sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+  else sessionStorage.removeItem(ADMIN_SESSION_KEY);
+}
+
+function sortedTeams(teams) {
+  return [...teams].sort((a, b) => b.score - a.score);
+}
+
+function render(state, mode, adminUnlocked) {
+  lastRender.mode = mode;
+  lastRender.adminUnlocked = adminUnlocked;
+
+  const app = document.getElementById('app');
+  const ranked = sortedTeams(state.teams);
+  const ranks = new Map();
+  let lastScore = null;
+  let rank = 0;
+  ranked.forEach((t, i) => {
+    if (t.score !== lastScore) {
+      rank = i + 1;
+      lastScore = t.score;
+    }
+    ranks.set(t.id, rank);
+  });
+
+  const showAdmin = mode === 'admin' && adminUnlocked;
+
+  app.innerHTML = `
+    <div class="top-bar">
+      <span class="brand">Leaderboard</span>
+      <div class="mode-toggle" role="group" aria-label="View mode">
+        <button type="button" data-mode="viewer" class="${mode === 'viewer' ? 'active' : ''}">Viewer</button>
+        <button type="button" data-mode="admin" class="${mode === 'admin' ? 'active' : ''}">Admin</button>
+      </div>
+    </div>
+
+    <header class="sticky-header">
+      ${showAdmin
+        ? `
+        <div class="admin-meta">
+          <div class="field-group">
+            <label for="quiz-title">Quiz title</label>
+            <input id="quiz-title" type="text" value="${escapeAttr(state.quizTitle)}" />
+          </div>
+          <div class="field-group" style="flex:2 1 280px">
+            <label for="quiz-desc">Description (shown to viewers)</label>
+            <textarea id="quiz-desc">${escapeHtml(state.quizDescription)}</textarea>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="btn btn-primary" id="btn-export">Export to Excel</button>
+          ${fsApiSupported()
+            ? `
+          <button type="button" class="btn" id="btn-txt-connect">${fileHandle ? 'Change .txt file' : 'Save to .txt file…'}</button>
+          ${fileHandle ? '<button type="button" class="btn" id="btn-txt-disconnect">Stop saving to file</button>' : ''}
+          `
+            : ''}
+        </div>
+        ${fsApiSupported()
+          ? `<p class="file-sync-hint">${fileHandle ? `Auto-saving to: <strong>${escapeHtml(fileHandle.name)}</strong>` : 'Pick a .txt file once — it updates on every change (Chrome / Edge).'}</p>`
+          : `<p class="file-sync-hint muted">Auto-save to a .txt on disk needs Chrome or Edge. Data still saves in this browser.</p>`}
+      `
+        : `
+        <h1>${escapeHtml(state.quizTitle)}</h1>
+        <p class="quiz-desc">${escapeHtml(state.quizDescription)}</p>
+      `}
+    </header>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-rank">Rank</th>
+            <th>Team</th>
+            <th>Members</th>
+            <th class="col-score">Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ranked
+            .map((team) => {
+              const r = ranks.get(team.id);
+              const members = padMembers(team.members);
+              return `
+            <tr data-id="${escapeAttr(team.id)}">
+              <td class="col-rank">${r}</td>
+              <td>${showAdmin ? `<input type="text" class="team-name-input" data-field="name" value="${escapeAttr(team.name)}" />` : escapeHtml(team.name)}</td>
+              <td>
+                ${showAdmin
+                  ? `<div class="member-inputs">
+                      <input type="text" data-m="0" placeholder="Member 1" value="${escapeAttr(members[0])}" />
+                      <input type="text" data-m="1" placeholder="Member 2" value="${escapeAttr(members[1])}" />
+                      <input type="text" data-m="2" placeholder="Member 3" value="${escapeAttr(members[2])}" />
+                    </div>`
+                  : `<ol class="members">${members.map((m) => `<li>${escapeHtml(m || '—')}</li>`).join('')}</ol>`}
+              </td>
+              <td class="col-score">
+                ${showAdmin
+                  ? `<div class="points-cell">
+                      <span class="score">${team.score}</span>
+                      <div class="stepper">
+                        <button type="button" class="minus" data-delta="-1" aria-label="Decrease by step">−</button>
+                        <input type="number" class="delta-input" value="1" min="1" max="999" step="1" aria-label="Step amount" />
+                        <button type="button" class="plus" data-delta="1" aria-label="Increase by step">+</button>
+                      </div>
+                    </div>`
+                  : team.score}
+              </td>
+            </tr>`;
+            })
+            .join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  if (showAdmin) {
+    const titleInput = document.getElementById('quiz-title');
+    const descInput = document.getElementById('quiz-desc');
+    titleInput.addEventListener('input', () => {
+      state.quizTitle = titleInput.value;
+      saveState(state);
+    });
+    descInput.addEventListener('input', () => {
+      state.quizDescription = descInput.value;
+      saveState(state);
+    });
+
+    document.getElementById('btn-export').addEventListener('click', () => exportExcel(state));
+    const btnConnect = document.getElementById('btn-txt-connect');
+    const btnDisconnect = document.getElementById('btn-txt-disconnect');
+    if (btnConnect) btnConnect.addEventListener('click', () => connectTxtFile());
+    if (btnDisconnect) btnDisconnect.addEventListener('click', () => disconnectTxtFile());
+
+    app.querySelectorAll('tbody tr').forEach((row) => {
+      const id = row.dataset.id;
+      const nameInput = row.querySelector('.team-name-input');
+      if (nameInput) {
+        nameInput.addEventListener('change', () => {
+          const team = state.teams.find((t) => t.id === id);
+          if (team) {
+            team.name = nameInput.value;
+            saveState(state);
+          }
+        });
+      }
+      row.querySelectorAll('.member-inputs input').forEach((inp) => {
+        inp.addEventListener('change', () => {
+          const team = state.teams.find((t) => t.id === id);
+          if (!team) return;
+          const idx = Number(inp.dataset.m);
+          while (team.members.length < 3) team.members.push('');
+          team.members[idx] = inp.value;
+          saveState(state);
+        });
+      });
+      row.querySelectorAll('.stepper button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const team = state.teams.find((t) => t.id === id);
+          if (!team) return;
+          const stepInp = row.querySelector('.delta-input');
+          const step = Math.max(1, Math.floor(Number(stepInp.value) || 1));
+          const sign = btn.dataset.delta === '1' ? 1 : -1;
+          team.score += sign * step;
+          saveState(state);
+          render(state, mode, adminUnlocked);
+        });
+      });
+    });
+  }
+
+  app.querySelectorAll('.mode-toggle button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.mode;
+      if (next === 'admin') {
+        if (!isAdminSession()) {
+          openPasswordModal((ok) => {
+            if (ok) {
+              setAdminSession(true);
+              render(state, 'admin', true);
+            }
+          });
+          return;
+        }
+        render(state, 'admin', true);
+        return;
+      }
+      render(state, 'viewer', false);
+    });
+  });
+}
+
+function padMembers(members) {
+  const m = [...(members || [])];
+  while (m.length < 3) m.push('');
+  return m.slice(0, 3);
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/'/g, '&#39;');
+}
+
+function openPasswordModal(onResult) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-labelledby="pw-title">
+      <h2 id="pw-title">Admin access</h2>
+      <p class="error-msg" id="pw-err" hidden></p>
+      <label class="sr-only" for="pw-field">Password</label>
+      <input type="password" id="pw-field" autocomplete="current-password" placeholder="Password" />
+      <div class="modal-actions">
+        <button type="button" class="btn" id="pw-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="pw-submit">Continue</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const field = overlay.querySelector('#pw-field');
+  const err = overlay.querySelector('#pw-err');
+  field.focus();
+
+  const close = () => overlay.remove();
+
+  const trySubmit = () => {
+    const ok = field.value === ADMIN_PASSWORD;
+    if (ok) {
+      close();
+      onResult(true);
+      return;
+    }
+    err.hidden = false;
+    err.textContent = 'Incorrect password.';
+  };
+
+  overlay.querySelector('#pw-cancel').addEventListener('click', () => {
+    close();
+    onResult(false);
+  });
+  overlay.querySelector('#pw-submit').addEventListener('click', trySubmit);
+  field.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') trySubmit();
+    if (e.key === 'Escape') {
+      close();
+      onResult(false);
+    }
+  });
+}
+
+function exportExcel(state) {
+  if (typeof XLSX === 'undefined') {
+    window.alert('Excel export is still loading. Please try again in a moment.');
+    return;
+  }
+  const ranked = sortedTeams(state.teams);
+  let lastScore = null;
+  let rank = 0;
+  const rows = ranked.map((t, i) => {
+    if (t.score !== lastScore) {
+      rank = i + 1;
+      lastScore = t.score;
+    }
+    const m = padMembers(t.members);
+    return {
+      Rank: rank,
+      Team: t.name,
+      'Member 1': m[0],
+      'Member 2': m[1],
+      'Member 3': m[2],
+      Score: t.score,
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Leaderboard');
+  const safe = String(state.quizTitle || 'leaderboard').replace(/[\\/:*?"<>|]/g, '-');
+  XLSX.writeFile(wb, `${safe}.xlsx`);
+}
+
+(async () => {
+  await restoreTxtFileHandle();
+  const adminOk = isAdminSession();
+  render(state, adminOk ? 'admin' : 'viewer', adminOk);
+})();
