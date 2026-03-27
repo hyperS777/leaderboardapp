@@ -306,6 +306,7 @@ function render(state, mode, adminUnlocked) {
           </div>
         </div>
         <div class="toolbar">
+          <button type="button" class="btn" id="btn-add-team">Add team</button>
           <button type="button" class="btn btn-primary" id="btn-export">Export to Excel</button>
           ${fsApiSupported()
             ? `
@@ -391,6 +392,21 @@ function render(state, mode, adminUnlocked) {
       });
     });
 
+    document.getElementById('btn-add-team').addEventListener('click', () => {
+      const nextNum = state.teams.length + 1;
+      state.teams.push({
+        id: newId(),
+        name: `Team ${nextNum}`,
+        members: ['', '', ''],
+        score: 0,
+      });
+      saveState(state)
+        .then(() => render(state, mode, adminUnlocked))
+        .catch((e) => {
+          console.error('Save failed', e);
+          window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+        });
+    });
     document.getElementById('btn-export').addEventListener('click', () => exportExcel(state));
     const btnConnect = document.getElementById('btn-txt-connect');
     const btnDisconnect = document.getElementById('btn-txt-disconnect');
