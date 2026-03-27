@@ -356,11 +356,11 @@ function render(state, mode, adminUnlocked) {
               <td class="col-score">
                 ${showAdmin
                   ? `<div class="points-cell">
-                      <span class="score">${team.score}</span>
+                      <span class="score" data-score="${team.score}">${team.score}</span>
                       <div class="stepper">
-                        <button type="button" class="minus" data-delta="-1" aria-label="Decrease by step">−</button>
-                        <input type="number" class="delta-input" value="1" min="1" max="999" step="1" aria-label="Step amount" />
-                        <button type="button" class="plus" data-delta="1" aria-label="Increase by step">+</button>
+                        <button type="button" class="minus" data-delta="-1" aria-label="Decrease score by step" title="Decrease">−</button>
+                        <input type="number" class="delta-input" value="1" min="1" max="999" step="1" aria-label="Step amount by which to adjust score" title="Step amount" />
+                        <button type="button" class="plus" data-delta="1" aria-label="Increase score by step" title="Increase">+</button>
                       </div>
                     </div>`
                   : team.score}
@@ -420,7 +420,7 @@ function render(state, mode, adminUnlocked) {
         nameInput.addEventListener('change', () => {
           const team = state.teams.find((t) => t.id === id);
           if (team) {
-            team.name = nameInput.value;
+            team.name = nameInput.value.trim() || `Team ${state.teams.indexOf(team) + 1}`;
             saveState(state).catch((e) => {
               console.error('Save failed', e);
               window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
@@ -448,7 +448,7 @@ function render(state, mode, adminUnlocked) {
           const stepInp = row.querySelector('.delta-input');
           const step = Math.max(1, Math.floor(Number(stepInp.value) || 1));
           const sign = btn.dataset.delta === '1' ? 1 : -1;
-          team.score += sign * step;
+          team.score = Math.max(0, team.score + sign * step);
           saveState(state).catch((e) => {
             console.error('Save failed', e);
             window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
@@ -537,8 +537,18 @@ function openPasswordModal(onResult) {
   });
   overlay.querySelector('#pw-submit').addEventListener('click', trySubmit);
   field.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') trySubmit();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      trySubmit();
+    }
     if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+      onResult(false);
+    }
+  });
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
       close();
       onResult(false);
     }
