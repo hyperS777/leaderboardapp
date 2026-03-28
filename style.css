@@ -63,7 +63,7 @@ html:not([data-theme="dark"]) body {
 .top-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 1.5rem;
   padding: 1.5rem 0 1rem;
   flex-wrap: wrap;
@@ -78,15 +78,18 @@ html:not([data-theme="dark"]) body {
   font-size: 1.1rem;
   letter-spacing: -0.02em;
   color: var(--text);
+  flex: 0 0 auto;
 }
 
 .top-bar-center {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .made-by {
@@ -97,12 +100,11 @@ html:not([data-theme="dark"]) body {
 }
 
 .top-controls {
-  position: absolute;
-  right: 0;
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .brand-logo-img {
