@@ -285,6 +285,136 @@ function toggleTheme() {
   setTheme(next);
 }
 
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  
+  // Parse header
+  const header = lines[0].split(',').map(h => h.trim());
+  const teamNameIdx = header.findIndex(h => h.toLowerCase().includes('team name'));
+  const member1Idx = header.findIndex(h => h.toLowerCase().includes("team leader") && h.toLowerCase().includes("name"));
+  const member2Idx = header.findIndex(h => h.toLowerCase().includes('member 2') && h.toLowerCase().includes('name'));
+  const member3Idx = header.findIndex(h => h.toLowerCase().includes('member 3') && h.toLowerCase().includes('name'));
+  
+  if (teamNameIdx === -1) return [];
+  
+  // Parse rows
+  const teams = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const cols = line.split(',').map(c => c.trim());
+    const teamName = cols[teamNameIdx]?.trim();
+    if (!teamName) continue;
+    
+    teams.push({
+      id: newId(),
+      name: teamName,
+      members: [
+        member1Idx !== -1 ? (cols[member1Idx]?.trim() || '') : '',
+        member2Idx !== -1 ? (cols[member2Idx]?.trim() || '') : '',
+        member3Idx !== -1 ? (cols[member3Idx]?.trim() || '') : '',
+      ],
+      score: 0,
+    });
+  }
+  return teams;
+}
+
+async function parseXLSX(arrayBuffer) {
+  if (typeof XLSX === 'undefined') {
+    window.alert('Excel library not loaded. Please try again.');
+    return [];
+  }
+  
+  try {
+    const wb = XLSX.read(arrayBuffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    
+    if (!rows.length) return [];
+    
+    const teams = [];
+    rows.forEach(row => {
+      // Find columns with flexible naming
+      const teamName = Object.keys(row).find(k => 
+        k.toLowerCase().includes('team') && k.toLowerCase().includes('name')
+      );
+      const member1 = Object.keys(row).find(k => 
+        k.toLowerCase().includes('leader') && k.toLowerCase().includes('name')
+      );
+      const member2 = Object.keys(row).find(k => 
+        k.toLowerCase().includes('member 2') && k.toLowerCase().includes('name')
+      );
+      const member3 = Object.keys(row).find(k => 
+        k.toLowerCase().includes('member 3') && k.toLowerCase().includes('name')
+      );
+      
+      const tn = row[teamName]?.toString().trim();
+      if (!tn) return;
+      
+      teams.push({
+        id: newId(),
+        name: tn,
+        members: [
+          row[member1]?.toString().trim() || '',
+          row[member2]?.toString().trim() || '',
+          row[member3]?.toString().trim() || '',
+        ],
+        score: 0,
+      });
+    });
+    
+    return teams;
+  } catch (e) {
+    console.error('XLSX parse error:', e);
+    window.alert('Error parsing Excel file: ' + e.message);
+    return [];
+  }
+}
+
+async function importTeamsFromFile(file) {
+  if (!file) return;
+  
+  try {
+    let teams = [];
+    
+    if (file.name.endsWith('.csv')) {
+      const text = await file.text();
+      teams = parseCSV(text);
+    } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      const arrayBuffer = await file.arrayBuffer();
+      teams = await parseXLSX(arrayBuffer);
+    } else {
+      window.alert('Only CSV and XLSX files are supported.');
+      return;
+    }
+    
+    if (!teams.length) {
+      window.alert('No valid teams found in file.');
+      return;
+    }
+    
+    // Add imported teams to state
+    state.teams = [...state.teams, ...teams];
+    
+    // Save and re-render
+    saveState(state)
+      .then(() => {
+        window.alert(`Successfully imported ${teams.length} team(s)!`);
+        render(state, lastRender.mode, lastRender.adminUnlocked);
+      })
+      .catch((e) => {
+        console.error('Save failed', e);
+        window.alert('Failed to save teams. Make sure Cloudflare Pages Functions + D1 are configured.');
+      });
+  } catch (e) {
+    console.error('Import error:', e);
+    window.alert('Error reading file: ' + e.message);
+  }
+}
+
 function sortedTeams(teams) {
   return [...teams].sort((a, b) => b.score - a.score);
 }
@@ -341,6 +471,8 @@ function render(state, mode, adminUnlocked) {
         </div>
         <div class="toolbar">
           <button type="button" class="btn" id="btn-add-team">Add team</button>
+          <button type="button" class="btn" id="btn-import-file">Import from CSV/XLSX</button>
+          <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display: none;" />
           <button type="button" class="btn btn-primary" id="btn-export">Export to Excel</button>
           ${fsApiSupported()
             ? `
@@ -440,6 +572,16 @@ function render(state, mode, adminUnlocked) {
           console.error('Save failed', e);
           window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
         });
+    });
+    document.getElementById('btn-import-file').addEventListener('click', () => {
+      document.getElementById('import-file-input').click();
+    });
+    document.getElementById('import-file-input').addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        importTeamsFromFile(file);
+        e.target.value = ''; // Reset for next file
+      }
     });
     document.getElementById('btn-export').addEventListener('click', () => exportExcel(state));
     const btnConnect = document.getElementById('btn-txt-connect');
