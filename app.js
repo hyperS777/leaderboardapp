@@ -3,6 +3,7 @@ const ADMIN_PASSWORD = 'jnu8484';
 
 const STORAGE_KEY = 'leaderboard-state-v1';
 const ADMIN_SESSION_KEY = 'leaderboard-admin-session';
+const THEME_KEY = 'leaderboard-theme';
 const IDB_NAME = 'leaderboard-txt-sync';
 const IDB_STORE = 'meta';
 const API_STATE_URL = '/api/state';
@@ -12,7 +13,7 @@ let fileHandle = null;
 let txtWriteTimer = null;
 
 /** Last UI mode for re-render after linking a save file */
-const lastRender = { mode: 'viewer', adminUnlocked: false };
+const lastRender = { mode: 'viewer', adminUnlocked: false, theme: 'light' };
 
 function newId() {
   return crypto.randomUUID
@@ -260,6 +261,30 @@ function setAdminSession(ok) {
   else sessionStorage.removeItem(ADMIN_SESSION_KEY);
 }
 
+function getTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'dark' || saved === 'light') return saved;
+  // Use system preference if not set
+  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
+  return 'light';
+}
+
+function setTheme(theme) {
+  lastRender.theme = theme;
+  localStorage.setItem(THEME_KEY, theme);
+  if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
+function toggleTheme() {
+  const current = getTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+}
+
 function sortedTeams(teams) {
   return [...teams].sort((a, b) => b.score - a.score);
 }
@@ -282,13 +307,19 @@ function render(state, mode, adminUnlocked) {
   });
 
   const showAdmin = mode === 'admin' && adminUnlocked;
+  const currentTheme = getTheme();
 
   app.innerHTML = `
     <div class="top-bar">
       <span class="brand">Leaderboard</span>
-      <div class="mode-toggle" role="group" aria-label="View mode">
-        <button type="button" data-mode="viewer" class="${mode === 'viewer' ? 'active' : ''}">Viewer</button>
-        <button type="button" data-mode="admin" class="${mode === 'admin' ? 'active' : ''}">Admin</button>
+      <div class="top-controls">
+        <div class="mode-toggle" role="group" aria-label="View mode">
+          <button type="button" data-mode="viewer" class="${mode === 'viewer' ? 'active' : ''}">Viewer</button>
+          <button type="button" data-mode="admin" class="${mode === 'admin' ? 'active' : ''}">Admin</button>
+        </div>
+        <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark/light mode" title="${currentTheme === 'dark' ? 'Light mode' : 'Dark mode'}">
+          ${currentTheme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </div>
     </div>
 
@@ -478,6 +509,14 @@ function render(state, mode, adminUnlocked) {
       render(state, 'viewer', false);
     });
   });
+
+  const themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      toggleTheme();
+      render(state, mode, adminUnlocked);
+    });
+  }
 }
 
 function padMembers(members) {
@@ -586,6 +625,10 @@ function exportExcel(state) {
 }
 
 (async () => {
+  // Initialize theme
+  const savedTheme = getTheme();
+  setTheme(savedTheme);
+  
   await restoreTxtFileHandle();
   const adminOk = isAdminSession();
   state = await loadState();
