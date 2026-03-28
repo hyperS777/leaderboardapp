@@ -108,8 +108,8 @@ html:not([data-theme="dark"]) body {
 }
 
 .brand-logo-img {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.5rem;
+  height: 4.5rem;
   object-fit: contain;
   border-radius: 0.25rem;
 }
@@ -336,8 +336,17 @@ html[data-theme="dark"] .file-sync-hint {
   box-shadow: var(--shadow-md);
 }
 
+html[data-theme="dark"] .btn {
+  border-color: rgba(168, 88, 119, 0.3);
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f1f5f9;
+}
+
 html[data-theme="dark"] .btn:hover {
-  background: rgba(232, 94, 124, 0.2);
+  background: rgba(168, 88, 119, 0.25);
+  border-color: var(--accent);
 }
 
 .btn:active {
@@ -781,16 +790,7 @@ html[data-theme="dark"] .error-msg {
 }
 
 .app-footer {
-  text-align: center;
-  padding: 2rem 1.5rem;
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin-top: 3rem;
-}
-
-.app-footer p {
-  margin: 0;
-  font-style: italic;
+  display: none;
 }
 
 @media (max-width: 900px) {
