@@ -83,17 +83,11 @@ html:not([data-theme="dark"]) body {
   color: var(--text);
 }
 
-.brand-logo {
+.brand-logo-img {
   width: 2rem;
   height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--success) 100%);
-  color: white;
-  border-radius: 0.5rem;
+  object-fit: contain;
+  border-radius: 0.25rem;
 }
 
 .brand-text {
@@ -337,6 +331,23 @@ html[data-theme="dark"] .btn:hover {
   background: var(--accent-active);
 }
 
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+  font-weight: 600;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-danger:active {
+  background: #b91c1c;
+}
+
 .table-wrap {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -407,6 +418,37 @@ tbody tr:hover {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.col-actions {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn-delete {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+}
+
+html[data-theme="dark"] .btn-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.btn-delete:active {
+  transform: scale(0.98);
 }
 
 .members {

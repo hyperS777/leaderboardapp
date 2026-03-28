@@ -442,7 +442,7 @@ function render(state, mode, adminUnlocked) {
   app.innerHTML = `
     <div class="top-bar">
       <div class="brand">
-        <div class="brand-logo">🏆</div>
+        <img src="megalogo.png" alt="Leaderboard Logo" class="brand-logo-img" />
         <span class="brand-text">Leaderboard</span>
       </div>
       <div class="top-controls">
@@ -480,6 +480,7 @@ function render(state, mode, adminUnlocked) {
           ${fileHandle ? '<button type="button" class="btn" id="btn-txt-disconnect">Stop saving to file</button>' : ''}
           `
             : ''}
+          <button type="button" class="btn btn-danger" id="btn-signout">Sign Out</button>
         </div>
         ${fsApiSupported()
           ? `<p class="file-sync-hint">${fileHandle ? `Auto-saving to: <strong>${escapeHtml(fileHandle.name)}</strong>` : 'Pick a .txt file once — it updates on every change (Chrome / Edge).'}</p>`
@@ -499,6 +500,7 @@ function render(state, mode, adminUnlocked) {
             <th>Team</th>
             <th>Members</th>
             <th class="col-score">Score</th>
+            ${showAdmin ? '<th class="col-actions">Actions</th>' : ''}
           </tr>
         </thead>
         <tbody>
@@ -531,6 +533,7 @@ function render(state, mode, adminUnlocked) {
                     </div>`
                   : team.score}
               </td>
+              ${showAdmin ? `<td class="col-actions"><button type="button" class="btn-delete" data-team-id="${escapeAttr(team.id)}" aria-label="Delete team" title="Delete team">Delete</button></td>` : ''}
             </tr>`;
             })
             .join('')}
@@ -584,6 +587,10 @@ function render(state, mode, adminUnlocked) {
       }
     });
     document.getElementById('btn-export').addEventListener('click', () => exportExcel(state));
+    document.getElementById('btn-signout').addEventListener('click', () => {
+      setAdminSession(false);
+      render(state, 'viewer', false);
+    });
     const btnConnect = document.getElementById('btn-txt-connect');
     const btnDisconnect = document.getElementById('btn-txt-disconnect');
     if (btnConnect) btnConnect.addEventListener('click', () => connectTxtFile());
@@ -632,6 +639,21 @@ function render(state, mode, adminUnlocked) {
           render(state, mode, adminUnlocked);
         });
       });
+      const deleteBtn = row.querySelector('.btn-delete');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+          const team = state.teams.find((t) => t.id === id);
+          const teamName = team ? escapeHtml(team.name) : 'Team';
+          if (confirm(`Are you sure you want to delete "${teamName}"?`)) {
+            state.teams = state.teams.filter((t) => t.id !== id);
+            saveState(state).catch((e) => {
+              console.error('Save failed', e);
+              window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+            });
+            render(state, mode, adminUnlocked);
+          }
+        });
+      }
     });
   }
 
