@@ -4,9 +4,9 @@
   --text: #0f172a;
   --muted: #64748b;
   --border: #e2e8f0;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-active: #1d4ed8;
+  --accent: #e85e7c;
+  --accent-hover: #d94a68;
+  --accent-active: #c93654;
   --success: #10b981;
   --danger: #ef4444;
   --radius: 8px;
@@ -227,14 +227,14 @@ html[data-theme="dark"] .sticky-header {
 .admin-meta textarea:focus {
   outline: none;
   border-color: var(--accent);
-  background: #f0f8ff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: rgba(232, 94, 124, 0.08);
+  box-shadow: 0 0 0 3px rgba(232, 94, 124, 0.15);
 }
 
 html[data-theme="dark"] .admin-meta input[type='text']:focus,
 html[data-theme="dark"] .admin-meta textarea:focus {
-  background: rgba(59, 130, 246, 0.15);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background: rgba(232, 94, 124, 0.15);
+  box-shadow: 0 0 0 3px rgba(232, 94, 124, 0.2);
 }
 
 .admin-meta textarea {
@@ -257,13 +257,13 @@ html[data-theme="dark"] .admin-meta textarea:focus {
   max-width: 70ch;
   line-height: 1.5;
   padding: 0.75rem;
-  background: #f9fafb;
+  background: rgba(232, 94, 124, 0.08);
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--accent);
 }
 
 html[data-theme="dark"] .file-sync-hint {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(232, 94, 124, 0.12);
 }
 
 .file-sync-hint strong {
@@ -295,8 +295,10 @@ html[data-theme="dark"] .file-sync-hint {
   font-weight: 600;
   padding: 0.85rem 1.25rem;
   border-radius: var(--radius-sm);
-  border: 1.5px solid var(--border);
-  background: var(--surface);
+  border: 1.5px solid rgba(232, 94, 124, 0.3);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
   color: var(--text);
   transition: var(--transition);
@@ -305,13 +307,13 @@ html[data-theme="dark"] .file-sync-hint {
 
 .btn:hover {
   border-color: var(--accent);
-  background: #f0f8ff;
+  background: rgba(232, 94, 124, 0.15);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
 html[data-theme="dark"] .btn:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(232, 94, 124, 0.2);
 }
 
 .btn:active {
@@ -594,13 +596,13 @@ html[data-theme="dark"] .delta-input:focus {
 .member-inputs input:focus {
   outline: none;
   border-color: var(--accent);
-  background: #f0f8ff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: rgba(232, 94, 124, 0.08);
+  box-shadow: 0 0 0 3px rgba(232, 94, 124, 0.15);
 }
 
 html[data-theme="dark"] .member-inputs input:focus {
-  background: rgba(59, 130, 246, 0.15);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background: rgba(232, 94, 124, 0.15);
+  box-shadow: 0 0 0 3px rgba(232, 94, 124, 0.2);
 }
 
 .member-inputs input::placeholder {
@@ -624,8 +626,8 @@ html[data-theme="dark"] .member-inputs input:focus {
 .team-name-input:focus {
   outline: none;
   border-color: var(--accent);
-  background: #f0f8ff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: rgba(232, 94, 124, 0.08);
+  box-shadow: 0 0 0 3px rgba(232, 94, 124, 0.15);
 }
 
 html[data-theme="dark"] .team-name-input:focus {
