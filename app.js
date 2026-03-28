@@ -311,7 +311,10 @@ function render(state, mode, adminUnlocked) {
 
   app.innerHTML = `
     <div class="top-bar">
-      <span class="brand">Leaderboard</span>
+      <div class="brand">
+        <div class="brand-logo">🏆</div>
+        <span class="brand-text">Leaderboard</span>
+      </div>
       <div class="top-controls">
         <div class="mode-toggle" role="group" aria-label="View mode">
           <button type="button" data-mode="viewer" class="${mode === 'viewer' ? 'active' : ''}">Viewer</button>

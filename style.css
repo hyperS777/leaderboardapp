@@ -74,9 +74,29 @@ html:not([data-theme="dark"]) body {
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.brand-logo {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--success) 100%);
+  color: white;
+  border-radius: 0.5rem;
+}
+
+.brand-text {
   background: linear-gradient(135deg, var(--accent) 0%, var(--success) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -214,6 +234,12 @@ html[data-theme="dark"] .sticky-header {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+html[data-theme="dark"] .admin-meta input[type='text']:focus,
+html[data-theme="dark"] .admin-meta textarea:focus {
+  background: rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
 .admin-meta textarea {
   min-height: 4.5rem;
   resize: vertical;
@@ -237,6 +263,10 @@ html[data-theme="dark"] .sticky-header {
   background: #f9fafb;
   border-radius: var(--radius-sm);
   border-left: 3px solid var(--accent);
+}
+
+html[data-theme="dark"] .file-sync-hint {
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .file-sync-hint strong {
@@ -478,6 +508,10 @@ tbody tr:hover {
   background: #f0f0f0;
 }
 
+html[data-theme="dark"] .delta-input:focus {
+  background: rgba(59, 130, 246, 0.15);
+}
+
 .member-inputs {
   display: flex;
   flex-direction: column;
@@ -504,6 +538,11 @@ tbody tr:hover {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+html[data-theme="dark"] .member-inputs input:focus {
+  background: rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
 .member-inputs input::placeholder {
   color: var(--muted);
 }
@@ -527,6 +566,11 @@ tbody tr:hover {
   border-color: var(--accent);
   background: #f0f8ff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+html[data-theme="dark"] .team-name-input:focus {
+  background: rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .overlay {
