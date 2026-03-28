@@ -453,6 +453,7 @@ function render(state, mode, adminUnlocked) {
         <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle dark/light mode" title="${currentTheme === 'dark' ? 'Light mode' : 'Dark mode'}">
           ${currentTheme === 'dark' ? '☀️' : '🌙'}
         </button>
+        ${showAdmin ? '<button type="button" class="btn btn-danger" id="btn-signout">Sign Out</button>' : ''}
       </div>
     </div>
 
@@ -470,17 +471,20 @@ function render(state, mode, adminUnlocked) {
           </div>
         </div>
         <div class="toolbar">
-          <button type="button" class="btn" id="btn-add-team">Add team</button>
-          <button type="button" class="btn" id="btn-import-file">Import from CSV/XLSX</button>
-          <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display: none;" />
-          <button type="button" class="btn btn-primary" id="btn-export">Export to Excel</button>
-          ${fsApiSupported()
-            ? `
-          <button type="button" class="btn" id="btn-txt-connect">${fileHandle ? 'Change .txt file' : 'Save to .txt file…'}</button>
-          ${fileHandle ? '<button type="button" class="btn" id="btn-txt-disconnect">Stop saving to file</button>' : ''}
-          `
-            : ''}
-          <button type="button" class="btn btn-danger" id="btn-signout">Sign Out</button>
+          <div class="toolbar-row">
+            <button type="button" class="btn btn-primary" id="btn-export">Export to Excel</button>
+            <button type="button" class="btn" id="btn-import-file">Import from CSV/XLSX</button>
+            <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display: none;" />
+            ${fsApiSupported()
+              ? `
+            <button type="button" class="btn" id="btn-txt-connect">${fileHandle ? 'Change .txt file' : 'Save to .txt file…'}</button>
+            ${fileHandle ? '<button type="button" class="btn" id="btn-txt-disconnect">Stop saving to file</button>' : ''}
+            `
+              : ''}
+          </div>
+          <div class="toolbar-row">
+            <button type="button" class="btn" id="btn-add-team">Add Team</button>
+          </div>
         </div>
         ${fsApiSupported()
           ? `<p class="file-sync-hint">${fileHandle ? `Auto-saving to: <strong>${escapeHtml(fileHandle.name)}</strong>` : 'Pick a .txt file once — it updates on every change (Chrome / Edge).'}</p>`
@@ -497,6 +501,7 @@ function render(state, mode, adminUnlocked) {
         <thead>
           <tr>
             <th class="col-rank">Rank</th>
+            <th class="col-team-num">Team #</th>
             <th>Team</th>
             <th>Members</th>
             <th class="col-score">Score</th>
@@ -505,12 +510,13 @@ function render(state, mode, adminUnlocked) {
         </thead>
         <tbody>
           ${ranked
-            .map((team) => {
+            .map((team, index) => {
               const r = ranks.get(team.id);
               const members = padMembers(team.members);
               return `
             <tr data-id="${escapeAttr(team.id)}">
               <td class="col-rank">${r}</td>
+              <td class="col-team-num">${index + 1}</td>
               <td>${showAdmin ? `<input type="text" class="team-name-input" data-field="name" value="${escapeAttr(team.name)}" />` : escapeHtml(team.name)}</td>
               <td>
                 ${showAdmin

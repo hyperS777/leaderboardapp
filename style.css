@@ -52,9 +52,9 @@ html:not([data-theme="dark"]) body {
 }
 
 #app {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.5rem 3rem;
 }
 
 .top-bar {
@@ -84,8 +84,8 @@ html:not([data-theme="dark"]) body {
 }
 
 .brand-logo-img {
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   object-fit: contain;
   border-radius: 0.25rem;
 }
@@ -279,11 +279,18 @@ html[data-theme="dark"] .file-sync-hint {
   align-items: flex-start;
 }
 
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .btn {
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
-  padding: 0.65rem 1.125rem;
+  padding: 0.85rem 1.25rem;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--border);
   background: var(--surface);
@@ -412,6 +419,14 @@ tbody tr:hover {
   font-weight: 700;
   color: var(--accent);
   font-size: 1.1rem;
+}
+
+.col-team-num {
+  width: 4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
 }
 
 .col-score {
