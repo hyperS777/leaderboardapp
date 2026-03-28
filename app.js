@@ -447,7 +447,10 @@ function render(state, mode, adminUnlocked) {
     <div class="top-bar">
       <div class="brand">
         <img src="megalogo.png" alt="Leaderboard Logo" class="brand-logo-img" />
-        <span class="brand-text">Leaderboard</span>
+        <span class="brand-text">Leaderboard App</span>
+      </div>
+      <div class="top-bar-center">
+        <span class="made-by">~made by ibad</span>
       </div>
       <div class="top-controls">
         <div class="mode-toggle" role="group" aria-label="View mode">
