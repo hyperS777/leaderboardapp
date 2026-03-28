@@ -546,6 +546,10 @@ function render(state, mode, adminUnlocked) {
         </tbody>
       </table>
     </div>
+
+    <footer class="app-footer">
+      <p>made by ibad</p>
+    </footer>
   `;
 
   if (showAdmin) {
