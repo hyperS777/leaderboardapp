@@ -13,7 +13,7 @@ let fileHandle = null;
 let txtWriteTimer = null;
 
 /** Last UI mode for re-render after linking a save file */
-const lastRender = { mode: 'viewer', adminUnlocked: false, theme: 'light' };
+const lastRender = { mode: 'viewer', adminUnlocked: false, theme: 'light', searchQuery: '' };
 
 function newId() {
   return crypto.randomUUID
