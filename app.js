@@ -28,18 +28,21 @@ const defaultState = () => ({
   teams: [
     {
       id: 'team-north-star',
+      teamNumber: 1,
       name: 'North Star',
       members: ['Alex Kim', 'Jordan Lee', 'Sam Patel'],
       score: 42,
     },
     {
       id: 'team-blue-shift',
+      teamNumber: 2,
       name: 'Blue Shift',
       members: ['Riley Chen', 'Morgan Wu', 'Casey Ortiz'],
       score: 38,
     },
     {
       id: 'team-vertex',
+      teamNumber: 3,
       name: 'Vertex',
       members: ['Taylor Brooks', 'Jamie Singh', 'Quinn Moore'],
       score: 35,
@@ -54,8 +57,9 @@ function normalizeState(parsed) {
   return {
     quizTitle: parsed.quizTitle ?? fallback.quizTitle,
     quizDescription: parsed.quizDescription ?? fallback.quizDescription,
-    teams: rawTeams.map((t) => ({
+    teams: rawTeams.map((t, idx) => ({
       id: t.id || newId(),
+      teamNumber: t.teamNumber ?? idx + 1,
       name: String(t.name ?? ''),
       members: Array.isArray(t.members) ? t.members.slice(0, 3).map(String) : ['', '', ''],
       score: Number(t.score) || 0,
@@ -510,13 +514,13 @@ function render(state, mode, adminUnlocked) {
         </thead>
         <tbody>
           ${ranked
-            .map((team, index) => {
+            .map((team) => {
               const r = ranks.get(team.id);
               const members = padMembers(team.members);
               return `
             <tr data-id="${escapeAttr(team.id)}">
               <td class="col-rank">${r}</td>
-              <td class="col-team-num">${index + 1}</td>
+              <td class="col-team-num">${team.teamNumber}</td>
               <td>${showAdmin ? `<input type="text" class="team-name-input" data-field="name" value="${escapeAttr(team.name)}" />` : escapeHtml(team.name)}</td>
               <td>
                 ${showAdmin
@@ -575,6 +579,7 @@ function render(state, mode, adminUnlocked) {
       const nextNum = state.teams.length + 1;
       state.teams.push({
         id: newId(),
+        teamNumber: nextNum,
         name: `Team ${nextNum}`,
         members: ['', '', ''],
         score: 0,

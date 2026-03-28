@@ -4,9 +4,9 @@
   --text: #0f172a;
   --muted: #64748b;
   --border: #e2e8f0;
-  --accent: #e85e7c;
-  --accent-hover: #d94a68;
-  --accent-active: #c93654;
+  --accent: #c75f7f;
+  --accent-hover: #b8527a;
+  --accent-active: #a94475;
   --success: #10b981;
   --danger: #ef4444;
   --radius: 8px;
@@ -91,7 +91,7 @@ html:not([data-theme="dark"]) body {
 }
 
 .brand-text {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--success) 100%);
+  background: linear-gradient(135deg, #c75f7f 0%, #8b6fa8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -295,7 +295,7 @@ html[data-theme="dark"] .file-sync-hint {
   font-weight: 600;
   padding: 0.85rem 1.25rem;
   border-radius: var(--radius-sm);
-  border: 1.5px solid rgba(232, 94, 124, 0.3);
+  border: 1.5px solid rgba(199, 95, 127, 0.3);
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -331,6 +331,8 @@ html[data-theme="dark"] .btn:hover {
   border-color: var(--accent);
   color: white;
   font-weight: 600;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .btn-primary:hover {
