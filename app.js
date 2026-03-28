@@ -487,7 +487,7 @@ function render(state, mode, adminUnlocked) {
           </div>
         </div>
         ${fsApiSupported()
-          ? `<p class="file-sync-hint">${fileHandle ? `Auto-saving to: <strong>${escapeHtml(fileHandle.name)}</strong>` : 'Pick a .txt file once — it updates on every change (Chrome / Edge).'}</p>`
+          ? `<p class="file-sync-hint">${fileHandle ? `Auto-saving to: <strong>${escapeHtml(fileHandle.name)}</strong>` : 'Pick a .txt file once, it updates on every change (for Chrome / Edge).'}</p>`
           : `<p class="file-sync-hint muted">Auto-save to a .txt on disk needs Chrome or Edge. Data still saves in this browser.</p>`}
       `
         : `
