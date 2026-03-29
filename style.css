@@ -54,10 +54,29 @@ html:not([data-theme="dark"]) body {
   background-attachment: fixed;
 }
 
+body::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 800px;
+  background-image: url('megalogo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.08;
+  z-index: 1;
+  pointer-events: none;
+}
+
 #app {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1.5rem 3rem;
+  position: relative;
+  z-index: 2;
 }
 
 .top-bar {
@@ -354,6 +373,15 @@ html[data-theme="dark"] .file-sync-hint {
 html[data-theme="dark"] .search-input:focus {
   background: rgba(199, 95, 127, 0.12);
   box-shadow: 0 0 0 3px rgba(199, 95, 127, 0.2);
+}
+
+.search-bar-section {
+  margin-bottom: 2rem;
+  padding: 0;
+}
+
+.search-bar-section .search-field {
+  max-width: 400px;
 }
 
 .toolbar {

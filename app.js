@@ -511,12 +511,6 @@ function render(state, mode, adminUnlocked) {
             <textarea id="quiz-desc">${escapeHtml(state.quizDescription)}</textarea>
           </div>
         </div>
-        <div class="search-row">
-          <div class="search-field">
-            <label for="quiz-search">🔍 Search teams by name</label>
-            <input id="quiz-search" type="text" class="search-input" placeholder="Search teams..." />
-          </div>
-        </div>
         <div class="toolbar">
           <div class="toolbar-row">
             <button type="button" class="btn btn-primary" id="btn-export">Export to Excel</button>
@@ -538,16 +532,17 @@ function render(state, mode, adminUnlocked) {
           : `<p class="file-sync-hint muted">Auto-save to a .txt on disk needs Chrome or Edge. Data still saves in this browser.</p>`}
       `
         : `
-        <div class="search-row">
-          <div class="search-field">
-            <label for="team-search">🔍 Search teams by name</label>
-            <input id="team-search" type="text" class="search-input" placeholder="Search teams..." />
-          </div>
-        </div>
         <h1>${escapeHtml(state.quizTitle)}</h1>
         <p class="quiz-desc">${escapeHtml(state.quizDescription)}</p>
       `}
     </header>
+
+    <div class="search-bar-section">
+      <div class="search-field">
+        <label for="${showAdmin ? 'quiz-search' : 'team-search'}">Search teams by name</label>
+        <input id="${showAdmin ? 'quiz-search' : 'team-search'}" type="text" class="search-input" placeholder="Search teams..." />
+      </div>
+    </div>
 
     <div class="table-wrap">
       <table>
