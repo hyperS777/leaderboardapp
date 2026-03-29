@@ -95,6 +95,39 @@ async function loadState() {
 
 let state = defaultState();
 
+// Scroll behavior state
+let lastScrollTop = 0;
+let isHeaderVisible = true;
+let scrollListenerAttached = false;
+
+function attachScrollListener() {
+  if (scrollListenerAttached) return;
+  scrollListenerAttached = true;
+
+  window.addEventListener('scroll', () => {
+    const stickyHeader = document.getElementById('sticky-header');
+    if (!stickyHeader) return;
+
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    
+    if (currentScroll > lastScrollTop && isHeaderVisible && currentScroll > 100) {
+      // Scrolling down
+      stickyHeader.style.transform = 'translateY(-100%)';
+      stickyHeader.style.opacity = '0';
+      stickyHeader.style.pointerEvents = 'none';
+      isHeaderVisible = false;
+    } else if (currentScroll < lastScrollTop && !isHeaderVisible) {
+      // Scrolling up
+      stickyHeader.style.transform = 'translateY(0)';
+      stickyHeader.style.opacity = '1';
+      stickyHeader.style.pointerEvents = 'auto';
+      isHeaderVisible = true;
+    }
+    
+    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+  });
+}
+
 function saveStateToLocal(nextState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
   scheduleTxtFileWrite(nextState);
@@ -440,6 +473,7 @@ function render(state, mode, adminUnlocked) {
     ranks.set(t.id, rank);
   });
 
+  // Store for filtering
   const showAdmin = mode === 'admin' && adminUnlocked;
   const currentTheme = getTheme();
 
@@ -464,7 +498,7 @@ function render(state, mode, adminUnlocked) {
       </div>
     </div>
 
-    <header class="sticky-header">
+    <header class="sticky-header" id="sticky-header">
       ${showAdmin
         ? `
         <div class="admin-meta">
@@ -475,6 +509,12 @@ function render(state, mode, adminUnlocked) {
           <div class="field-group" style="flex:2 1 280px">
             <label for="quiz-desc">Description (shown to viewers)</label>
             <textarea id="quiz-desc">${escapeHtml(state.quizDescription)}</textarea>
+          </div>
+        </div>
+        <div class="search-row">
+          <div class="search-field">
+            <label for="quiz-search">🔍 Search teams by name</label>
+            <input id="quiz-search" type="text" class="search-input" placeholder="Search teams..." />
           </div>
         </div>
         <div class="toolbar">
@@ -498,6 +538,12 @@ function render(state, mode, adminUnlocked) {
           : `<p class="file-sync-hint muted">Auto-save to a .txt on disk needs Chrome or Edge. Data still saves in this browser.</p>`}
       `
         : `
+        <div class="search-row">
+          <div class="search-field">
+            <label for="team-search">🔍 Search teams by name</label>
+            <input id="team-search" type="text" class="search-input" placeholder="Search teams..." />
+          </div>
+        </div>
         <h1>${escapeHtml(state.quizTitle)}</h1>
         <p class="quiz-desc">${escapeHtml(state.quizDescription)}</p>
       `}
@@ -562,6 +608,24 @@ function render(state, mode, adminUnlocked) {
   if (showAdmin) {
     const titleInput = document.getElementById('quiz-title');
     const descInput = document.getElementById('quiz-desc');
+    const quizSearch = document.getElementById('quiz-search');
+
+    // Add search filtering for admins
+    const updateAdminSearch = () => {
+      const searchTerm = (quizSearch.value || '').toLowerCase();
+      const rows = app.querySelectorAll('tbody tr');
+      
+      rows.forEach((row) => {
+        const teamName = row.querySelector('.team-name-input').value.toLowerCase();
+        const isMatch = searchTerm === '' || teamName.includes(searchTerm);
+        row.style.display = isMatch ? '' : 'none';
+      });
+    };
+
+    if (quizSearch) {
+      quizSearch.addEventListener('input', updateAdminSearch);
+    }
+
     titleInput.addEventListener('input', () => {
       state.quizTitle = titleInput.value;
       // Save immediately so viewers load the shared state after refresh.
@@ -694,6 +758,26 @@ function render(state, mode, adminUnlocked) {
       render(state, 'viewer', false);
     });
   });
+
+  // Add search filtering for viewers
+  if (!showAdmin) {
+    const teamSearch = document.getElementById('team-search');
+    if (teamSearch) {
+      teamSearch.addEventListener('input', () => {
+        const searchTerm = (teamSearch.value || '').toLowerCase();
+        const rows = app.querySelectorAll('tbody tr');
+        
+        rows.forEach((row) => {
+          const teamName = row.textContent.toLowerCase();
+          const isMatch = searchTerm === '' || teamName.includes(searchTerm);
+          row.style.display = isMatch ? '' : 'none';
+        });
+      });
+    }
+  }
+
+  // Attach scroll listener once
+  attachScrollListener();
 
   const themeToggle = document.getElementById('theme-toggle');
   if (themeToggle) {
