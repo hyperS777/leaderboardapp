@@ -23,14 +23,14 @@
 }
 
 html[data-theme="dark"] {
-  --bg: #0f172a;
-  --surface: #1e293b;
+  --bg: #2d1b4e;
+  --surface: #3d2561;
   --text: #f1f5f9;
-  --muted: #94a3b8;
-  --border: #334155;
-  --accent: #a85877;
-  --accent-hover: #9b4d6d;
-  --accent-active: #8e4263;
+  --muted: #b8a3c8;
+  --border: #4a3669;
+  --accent: #d87bb8;
+  --accent-hover: #d16aab;
+  --accent-active: #c85a9e;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
@@ -200,8 +200,7 @@ body::before {
 }
 
 .sticky-header {
-  position: sticky;
-  top: 0;
+  position: static;
   z-index: 20;
   background: rgba(255, 255, 255, 0.9);
   padding: 1.5rem 1.25rem;
@@ -211,17 +210,12 @@ body::before {
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border-radius: var(--radius);
-  transition: transform 200ms ease-out, opacity 200ms ease-out;
-  transform: translateY(0);
-  opacity: 1;
-  pointer-events: auto;
-  will-change: transform, opacity;
   contain: layout paint style;
 }
 
 html[data-theme="dark"] .sticky-header {
-  background: rgba(30, 41, 59, 0.85);
-  border-bottom-color: rgba(51, 65, 85, 0.4);
+  background: rgba(61, 37, 97, 0.9);
+  border-bottom-color: rgba(74, 54, 105, 0.6);
 }
 
 .sticky-header h1 {

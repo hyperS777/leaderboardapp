@@ -785,9 +785,6 @@ function render(state, mode, adminUnlocked) {
     }
   }
 
-  // Attach scroll listener once
-  attachScrollListener();
-
   const themeToggle = document.getElementById('theme-toggle');
   if (themeToggle) {
     themeToggle.addEventListener('click', () => {
