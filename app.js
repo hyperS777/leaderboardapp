@@ -99,33 +99,39 @@ let state = defaultState();
 let lastScrollTop = 0;
 let isHeaderVisible = true;
 let scrollListenerAttached = false;
+let scrollAnimationFrameId = null;
 
 function attachScrollListener() {
   if (scrollListenerAttached) return;
   scrollListenerAttached = true;
 
-  window.addEventListener('scroll', () => {
-    const stickyHeader = document.getElementById('sticky-header');
-    if (!stickyHeader) return;
+  const stickyHeader = document.getElementById('sticky-header');
+  if (!stickyHeader) return;
 
-    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-    
-    if (currentScroll > lastScrollTop && isHeaderVisible && currentScroll > 100) {
-      // Scrolling down
-      stickyHeader.style.transform = 'translateY(-100%)';
-      stickyHeader.style.opacity = '0';
-      stickyHeader.style.pointerEvents = 'none';
-      isHeaderVisible = false;
-    } else if (currentScroll < lastScrollTop && !isHeaderVisible) {
-      // Scrolling up
-      stickyHeader.style.transform = 'translateY(0)';
-      stickyHeader.style.opacity = '1';
-      stickyHeader.style.pointerEvents = 'auto';
-      isHeaderVisible = true;
+  window.addEventListener('scroll', () => {
+    if (scrollAnimationFrameId !== null) {
+      cancelAnimationFrame(scrollAnimationFrameId);
     }
-    
-    lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-  });
+
+    scrollAnimationFrameId = requestAnimationFrame(() => {
+      const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+      
+      if (currentScroll > lastScrollTop && isHeaderVisible && currentScroll > 100) {
+        stickyHeader.style.transform = 'translateY(-100%)';
+        stickyHeader.style.opacity = '0';
+        stickyHeader.style.pointerEvents = 'none';
+        isHeaderVisible = false;
+      } else if (currentScroll < lastScrollTop && !isHeaderVisible) {
+        stickyHeader.style.transform = 'translateY(0)';
+        stickyHeader.style.opacity = '1';
+        stickyHeader.style.pointerEvents = 'auto';
+        isHeaderVisible = true;
+      }
+      
+      lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+      scrollAnimationFrameId = null;
+    });
+  }, { passive: true });
 }
 
 function saveStateToLocal(nextState) {
@@ -605,7 +611,8 @@ function render(state, mode, adminUnlocked) {
     const descInput = document.getElementById('quiz-desc');
     const quizSearch = document.getElementById('quiz-search');
 
-    // Add search filtering for admins
+    // Add search filtering for admins with debouncing
+    let searchTimeout;
     const updateAdminSearch = () => {
       const searchTerm = (quizSearch.value || '').toLowerCase();
       const rows = app.querySelectorAll('tbody tr');
@@ -618,7 +625,10 @@ function render(state, mode, adminUnlocked) {
     };
 
     if (quizSearch) {
-      quizSearch.addEventListener('input', updateAdminSearch);
+      quizSearch.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(updateAdminSearch, 100);
+      }, { passive: true });
     }
 
     titleInput.addEventListener('input', () => {
@@ -758,16 +768,20 @@ function render(state, mode, adminUnlocked) {
   if (!showAdmin) {
     const teamSearch = document.getElementById('team-search');
     if (teamSearch) {
+      let searchTimeout;
       teamSearch.addEventListener('input', () => {
-        const searchTerm = (teamSearch.value || '').toLowerCase();
-        const rows = app.querySelectorAll('tbody tr');
-        
-        rows.forEach((row) => {
-          const teamName = row.textContent.toLowerCase();
-          const isMatch = searchTerm === '' || teamName.includes(searchTerm);
-          row.style.display = isMatch ? '' : 'none';
-        });
-      });
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          const searchTerm = (teamSearch.value || '').toLowerCase();
+          const rows = app.querySelectorAll('tbody tr');
+          
+          rows.forEach((row) => {
+            const teamName = row.textContent.toLowerCase();
+            const isMatch = searchTerm === '' || teamName.includes(searchTerm);
+            row.style.display = isMatch ? '' : 'none';
+          });
+        }, 100);
+      }, { passive: true });
     }
   }
 

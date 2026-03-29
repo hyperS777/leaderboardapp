@@ -46,7 +46,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--bg);
-  transition: background 300ms ease, color 300ms ease;
+  transition: background 250ms ease, color 250ms ease;
 }
 
 html:not([data-theme="dark"]) body {
@@ -157,7 +157,7 @@ body::before {
   cursor: pointer;
   color: var(--muted);
   font-weight: 500;
-  transition: var(--transition);
+  transition: color 150ms ease, background 150ms ease;
 }
 
 .mode-toggle button:hover {
@@ -181,11 +181,12 @@ body::before {
   background: var(--surface);
   cursor: pointer;
   color: var(--text);
-  transition: var(--transition);
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
   font-size: 1.2rem;
   line-height: 1;
   padding: 0;
   box-shadow: var(--shadow);
+  will-change: transform;
 }
 
 .theme-toggle:hover {
@@ -206,15 +207,16 @@ body::before {
   padding: 1.5rem 1.25rem;
   border-bottom: 1px solid rgba(226, 232, 240, 0.4);
   margin-bottom: 2rem;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border-radius: var(--radius);
-  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 200ms ease-out, opacity 200ms ease-out;
   transform: translateY(0);
   opacity: 1;
   pointer-events: auto;
   will-change: transform, opacity;
+  contain: layout paint style;
 }
 
 html[data-theme="dark"] .sticky-header {
@@ -268,7 +270,7 @@ html[data-theme="dark"] .sticky-header {
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
-  transition: var(--transition);
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
 
 .admin-meta input[type='text']:focus,
@@ -355,7 +357,7 @@ html[data-theme="dark"] .file-sync-hint {
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
-  transition: var(--transition);
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
   font-size: 0.95rem;
 }
 
@@ -411,8 +413,9 @@ html[data-theme="dark"] .search-input:focus {
   -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
   color: var(--text);
-  transition: var(--transition);
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease, box-shadow 120ms ease;
   white-space: nowrap;
+  will-change: transform;
 }
 
 .btn:hover {
@@ -531,8 +534,9 @@ tbody tr {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-sm);
-  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 120ms ease-out;
   margin-bottom: 0.5rem;
+  contain: layout paint style;
 }
 
 html[data-theme="dark"] tbody tr {
@@ -590,7 +594,7 @@ html[data-theme="dark"] tbody tr:hover {
   background: transparent;
   color: var(--accent);
   cursor: pointer;
-  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 120ms ease, transform 120ms ease, border-color 120ms ease;
   will-change: transform;
 }
 
@@ -653,17 +657,7 @@ html[data-theme="dark"] .btn-delete:hover {
   height: 2rem;
   padding: 0;
   font-size: 1.1rem;
-  line-height: 1;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text);
-  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  will-change: transform;
+  line-height: 1;\n  border: none;\n  border-radius: 4px;\n  background: transparent;\n  cursor: pointer;\n  color: var(--text);\n  transition: background 120ms ease, transform 120ms ease;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  will-change: transform;
 }
 
 .stepper button:hover {
