@@ -559,14 +559,6 @@ html[data-theme="dark"] tbody tr:hover {
   font-size: 1.1rem;
 }
 
-.col-team-num {
-  width: 4rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--muted);
-  text-align: center;
-}
-
 .col-score {
   font-variant-numeric: tabular-nums;
   font-weight: 700;

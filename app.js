@@ -545,7 +545,6 @@ function render(state, mode, adminUnlocked) {
         <thead>
           <tr>
             <th class="col-rank">Rank</th>
-            <th class="col-team-num">Team #</th>
             <th>Team</th>
             <th>Members</th>
             <th class="col-score">Score</th>
@@ -560,7 +559,6 @@ function render(state, mode, adminUnlocked) {
               return `
             <tr data-id="${escapeAttr(team.id)}">
               <td class="col-rank">${r}</td>
-              <td class="col-team-num">${team.teamNumber}</td>
               <td>${showAdmin ? `<input type="text" class="team-name-input" data-field="name" value="${escapeAttr(team.name)}" />` : escapeHtml(team.name)}</td>
               <td>
                 ${showAdmin
