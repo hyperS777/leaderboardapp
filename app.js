@@ -207,8 +207,6 @@ function idbDelete() {
 
 function formatStateAsTxt(state) {
   const ranked = sortedTeams(state.teams);
-  let lastScore = null;
-  let rank = 0;
   const lines = [];
   lines.push('LEADERBOARD BACKUP');
   lines.push(`Saved: ${new Date().toISOString()}`);
@@ -219,12 +217,8 @@ function formatStateAsTxt(state) {
   lines.push('');
   lines.push('--- TEAMS ---');
   ranked.forEach((t, i) => {
-    if (t.score !== lastScore) {
-      rank = i + 1;
-      lastScore = t.score;
-    }
     const m = padMembers(t.members);
-    lines.push(`Rank ${rank} | ${t.name} | ${t.score} pts`);
+    lines.push(`Rank ${i + 1} | ${t.name} | ${t.score} pts`);
     lines.push(`  ${m[0]} | ${m[1]} | ${m[2]}`);
   });
   lines.push('');
@@ -475,14 +469,8 @@ function render(state, mode, adminUnlocked) {
   const app = document.getElementById('app');
   const ranked = sortedTeams(state.teams);
   const ranks = new Map();
-  let lastScore = null;
-  let rank = 0;
   ranked.forEach((t, i) => {
-    if (t.score !== lastScore) {
-      rank = i + 1;
-      lastScore = t.score;
-    }
-    ranks.set(t.id, rank);
+    ranks.set(t.id, i + 1);
   });
 
   // Store for filtering
@@ -881,16 +869,10 @@ function exportExcel(state) {
     return;
   }
   const ranked = sortedTeams(state.teams);
-  let lastScore = null;
-  let rank = 0;
   const rows = ranked.map((t, i) => {
-    if (t.score !== lastScore) {
-      rank = i + 1;
-      lastScore = t.score;
-    }
     const m = padMembers(t.members);
     return {
-      Rank: rank,
+      Rank: i + 1,
       Team: t.name,
       'Member 1': m[0],
       'Member 2': m[1],
