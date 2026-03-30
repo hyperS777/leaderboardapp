@@ -468,10 +468,6 @@ function render(state, mode, adminUnlocked) {
 
   const app = document.getElementById('app');
   const ranked = sortedTeams(state.teams);
-  const ranks = new Map();
-  ranked.forEach((t, i) => {
-    ranks.set(t.id, i + 1);
-  });
 
   // Store for filtering
   const showAdmin = mode === 'admin' && adminUnlocked;
@@ -558,8 +554,8 @@ function render(state, mode, adminUnlocked) {
         </thead>
         <tbody>
           ${ranked
-            .map((team) => {
-              const r = ranks.get(team.id);
+            .map((team, idx) => {
+              const r = idx + 1;
               const members = padMembers(team.members);
               return `
             <tr data-id="${escapeAttr(team.id)}">
