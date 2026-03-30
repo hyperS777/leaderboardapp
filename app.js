@@ -439,8 +439,14 @@ async function importTeamsFromFile(file) {
       return;
     }
     
-    // Add imported teams to state
-    state.teams = [...state.teams, ...teams];
+    // Add imported teams to state — assign sequential teamNumber and normalize members
+    const base = state.teams.length;
+    const prepared = teams.map((t, i) => ({
+      ...t,
+      teamNumber: t.teamNumber ?? (base + i + 1),
+      members: Array.isArray(t.members) ? [t.members[0] || '', t.members[1] || '', t.members[2] || ''] : ['', '', ''],
+    }));
+    state.teams = [...state.teams, ...prepared];
     
     // Save and re-render
     saveState(state)
@@ -718,7 +724,7 @@ function render(state, mode, adminUnlocked) {
           const stepInp = row.querySelector('.delta-input');
           const step = Math.max(1, Math.floor(Number(stepInp.value) || 1));
           const sign = btn.dataset.delta === '1' ? 1 : -1;
-          team.score = Math.max(0, team.score + sign * step);
+          team.score = team.score + sign * step;
           saveState(state).catch((e) => {
             console.error('Save failed', e);
             window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
