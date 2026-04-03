@@ -907,5 +907,23 @@ function exportExcel(state) {
   await restoreTxtFileHandle();
   const adminOk = isAdminSession();
   state = await loadState();
-  render(state, adminOk ? 'admin' : 'viewer', adminOk);
+  
+  // Check if URL contains admin parameter or path
+  const urlParams = new URLSearchParams(window.location.search);
+  const isAdminUrl = urlParams.get('admin') === 'true' || window.location.pathname === '/admin' || window.location.pathname.endsWith('/admin');
+  
+  if (isAdminUrl && !adminOk) {
+    // Show password modal immediately
+    render(state, 'viewer', false);
+    openPasswordModal((ok) => {
+      if (ok) {
+        setAdminSession(true);
+        render(state, 'admin', true);
+      } else {
+        render(state, 'viewer', false);
+      }
+    });
+  } else {
+    render(state, adminOk ? 'admin' : 'viewer', adminOk);
+  }
 })();
