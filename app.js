@@ -11,6 +11,10 @@ const ADMIN_PASSWORD_HASH = 'f82989351fc244166d048a3321849ed972dc4e9d2b73924f472
 const STORAGE_KEY = 'leaderboard-state-v1';
 const ADMIN_SESSION_KEY = 'leaderboard-admin-session';
 const THEME_KEY = 'leaderboard-theme';
+const LOGIN_ATTEMPTS_KEY = 'leaderboard-login-attempts';
+const LOGIN_LOCKOUT_KEY = 'leaderboard-login-lockout';
+const MAX_LOGIN_ATTEMPTS = 3;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 const IDB_NAME = 'leaderboard-txt-sync';
 const IDB_STORE = 'meta';
 const API_STATE_URL = '/api/state';
@@ -313,6 +317,38 @@ function isAdminSession() {
 function setAdminSession(ok) {
   if (ok) sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
   else sessionStorage.removeItem(ADMIN_SESSION_KEY);
+}
+
+function isLoginLocked() {
+  const lockoutTime = localStorage.getItem(LOGIN_LOCKOUT_KEY);
+  if (!lockoutTime) return false;
+  const now = Date.now();
+  if (now < parseInt(lockoutTime)) return true;
+  localStorage.removeItem(LOGIN_LOCKOUT_KEY);
+  localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+  return false;
+}
+
+function getRemainingLockoutSeconds() {
+  const lockoutTime = localStorage.getItem(LOGIN_LOCKOUT_KEY);
+  if (!lockoutTime) return 0;
+  const remaining = Math.ceil((parseInt(lockoutTime) - Date.now()) / 1000);
+  return Math.max(0, remaining);
+}
+
+function recordFailedLoginAttempt() {
+  let attempts = parseInt(localStorage.getItem(LOGIN_ATTEMPTS_KEY) || '0') + 1;
+  if (attempts >= MAX_LOGIN_ATTEMPTS) {
+    localStorage.setItem(LOGIN_LOCKOUT_KEY, String(Date.now() + LOCKOUT_DURATION_MS));
+    localStorage.setItem(LOGIN_ATTEMPTS_KEY, String(attempts));
+  } else {
+    localStorage.setItem(LOGIN_ATTEMPTS_KEY, String(attempts));
+  }
+}
+
+function getRemainingLoginAttempts() {
+  const attempts = parseInt(localStorage.getItem(LOGIN_ATTEMPTS_KEY) || '0');
+  return Math.max(0, MAX_LOGIN_ATTEMPTS - attempts);
 }
 
 function getTheme() {
@@ -818,17 +854,31 @@ function escapeAttr(s) {
 }
 
 function openPasswordModal(onResult) {
+  // Check if account is locked
+  if (isLoginLocked()) {
+    const remaining = getRemainingLockoutSeconds();
+    const mins = Math.ceil(remaining / 60);
+    window.alert(`Too many failed attempts. Please try again in ${mins} minute${mins > 1 ? 's' : ''}.`);
+    onResult(false);
+    return;
+  }
+
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
+  const remainingAttempts = getRemainingLoginAttempts();
+  const warningText = remainingAttempts === 0 ? 'No attempts remaining!' : 
+                      remainingAttempts === 1 ? 'Warning: 1 attempt left!' : '';
+  
   overlay.innerHTML = `
     <div class="modal" role="dialog" aria-labelledby="pw-title">
       <h2 id="pw-title">Admin access</h2>
       <p class="error-msg" id="pw-err" hidden></p>
+      ${warningText ? `<p class="warning-msg">${warningText}</p>` : ''}
       <label class="sr-only" for="pw-field">Password</label>
       <input type="password" id="pw-field" autocomplete="current-password" placeholder="Password" />
       <div class="modal-actions">
         <button type="button" class="btn" id="pw-cancel">Cancel</button>
-        <button type="button" class="btn btn-primary" id="pw-submit">Continue</button>
+        <button type="button" class="btn btn-primary" id="pw-submit"${remainingAttempts === 0 ? ' disabled' : ''}>Continue</button>
       </div>
     </div>
   `;
@@ -840,15 +890,30 @@ function openPasswordModal(onResult) {
   const close = () => overlay.remove();
 
   const trySubmit = async () => {
+    if (remainingAttempts === 0) return;
+    
     const inputHash = await hashPassword(field.value);
     const ok = inputHash === ADMIN_PASSWORD_HASH;
     if (ok) {
+      localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+      localStorage.removeItem(LOGIN_LOCKOUT_KEY);
       close();
       onResult(true);
       return;
     }
-    err.hidden = false;
-    err.textContent = 'Incorrect password.';
+    
+    recordFailedLoginAttempt();
+    if (isLoginLocked()) {
+      err.hidden = false;
+      err.textContent = 'Too many attempts! Access locked for 15 minutes.';
+      overlay.querySelector('#pw-submit').disabled = true;
+    } else {
+      const remaining = getRemainingLoginAttempts();
+      err.hidden = false;
+      err.textContent = remaining === 0 
+        ? 'Incorrect password. No attempts left. Access locked for 15 minutes.'
+        : `Incorrect password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`;
+    }
   };
 
   overlay.querySelector('#pw-cancel').addEventListener('click', () => {
