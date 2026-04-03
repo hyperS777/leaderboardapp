@@ -107,10 +107,14 @@ async function loadStateFromApi() {
 
 async function loadState() {
   try {
-    return await loadStateFromApi();
+    const data = await loadStateFromApi();
+    console.log('✓ Loaded state from API (server database)');
+    return data;
   } catch (e) {
-    console.warn('API failed, falling back to local state', e);
-    return loadStateFromLocal();
+    console.warn('⚠ API failed, falling back to local browser storage', e);
+    const local = loadStateFromLocal();
+    console.warn('This shows data from your current browser only. Other browsers won\'t see these changes.');
+    return local;
   }
 }
 
@@ -168,13 +172,22 @@ async function saveStateToApi(nextState) {
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => '');
-    throw new Error(`Save failed (${res.status}): ${msg || 'unknown error'}`);
+    const error = `Save failed (${res.status}): ${msg || 'unknown error'}`;
+    console.error('❌', error);
+    throw new Error(error);
   }
+  console.log('✓ Changes saved to server database (visible to all browsers)');
 }
 
 async function saveState(nextState) {
-  await saveStateToApi(nextState);
-  saveStateToLocal(nextState);
+  try {
+    await saveStateToApi(nextState);
+    saveStateToLocal(nextState);
+  } catch (e) {
+    console.error('⚠ Failed to save to server. Saving to browser only.', e);
+    saveStateToLocal(nextState);
+    throw e;
+  }
 }
 
 function openIdb() {
@@ -991,4 +1004,11 @@ function exportExcel(state) {
   } else {
     render(state, adminOk ? 'admin' : 'viewer', adminOk);
   }
+  
+  // Help message for deployment
+  console.log('📋 Leaderboard Status:');
+  console.log('- Check the browser console (F12) for data sync status');
+  console.log('- If you see ✓ "Loaded state from API": Data syncs across browsers');
+  console.log('- If you see ⚠ "Falling back to local state": Data only exists in this browser');
+  console.log('- To enable cross-browser sync, deploy to Cloudflare Pages with D1 database');
 })();

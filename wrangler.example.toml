@@ -2,6 +2,14 @@ name = "leaderboard"
 main = "functions/api/state.js"
 compatibility_date = "2024-01-01"
 
-# Copy this file to wrangler.toml and update PASSWORD_HASH with your actual admin password hash
 [env.production]
 vars = { PASSWORD_HASH = "f82989351fc244166d048a3321849ed972dc4e9d2b73924f472cc177cfef6f8a" }
+d1_databases = [
+  { binding = "DB", database_name = "leaderboard-db", database_id = "YOUR_DATABASE_ID" }
+]
+
+# Setup instructions:
+# 1. Create a D1 database: wrangler d1 create leaderboard-db
+# 2. Get the database ID from the output and replace YOUR_DATABASE_ID above
+# 3. Initialize the schema: wrangler d1 execute leaderboard-db --file D1_SCHEMA.sql
+# 4. Deploy: wrangler deploy --env production
