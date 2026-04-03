@@ -1,0 +1,7 @@
+name = "leaderboard"
+main = "functions/api/state.js"
+compatibility_date = "2024-01-01"
+
+# Copy this file to wrangler.toml and update PASSWORD_HASH with your actual admin password hash
+[env.production]
+vars = { PASSWORD_HASH = "f82989351fc244166d048a3321849ed972dc4e9d2b73924f472cc177cfef6f8a" }

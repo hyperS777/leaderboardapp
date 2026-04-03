@@ -1,5 +1,12 @@
-/** Change this to set the admin password (plain text in this file). */
-const ADMIN_PASSWORD = 'jnu8484';
+/** 
+ * HASHED password for admin access (encrypted with SHA-256).
+ * Original password: soeokok
+ * To update this hash:
+ * 1. Open browser console
+ * 2. Run: await crypto.subtle.digest('SHA-256', new TextEncoder().encode('your-new-password')).then(h => console.log(Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('')))
+ * 3. Replace the hash below with the output
+ */
+const ADMIN_PASSWORD_HASH = 'f82989351fc244166d048a3321849ed972dc4e9d2b73924f472cc177cfef6f8a';
 
 const STORAGE_KEY = 'leaderboard-state-v1';
 const ADMIN_SESSION_KEY = 'leaderboard-admin-session';
@@ -7,6 +14,16 @@ const THEME_KEY = 'leaderboard-theme';
 const IDB_NAME = 'leaderboard-txt-sync';
 const IDB_STORE = 'meta';
 const API_STATE_URL = '/api/state';
+
+/** Hash a password using SHA-256 */
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 /** @type {FileSystemFileHandle | null} */
 let fileHandle = null;
@@ -143,7 +160,7 @@ async function saveStateToApi(nextState) {
   const res = await fetch(API_STATE_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ password: ADMIN_PASSWORD, state: nextState }),
+    body: JSON.stringify({ password: ADMIN_PASSWORD_HASH, state: nextState }),
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => '');
@@ -822,8 +839,9 @@ function openPasswordModal(onResult) {
 
   const close = () => overlay.remove();
 
-  const trySubmit = () => {
-    const ok = field.value === ADMIN_PASSWORD;
+  const trySubmit = async () => {
+    const inputHash = await hashPassword(field.value);
+    const ok = inputHash === ADMIN_PASSWORD_HASH;
     if (ok) {
       close();
       onResult(true);
