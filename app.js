@@ -916,6 +916,13 @@ function openPasswordModal(onResult) {
         return;
       }
       
+      // If server auth fails or is unavailable, check if it's a 500+ error (server issue)
+      if (res.status >= 500) {
+        err.hidden = false;
+        err.textContent = 'Server error. Please make sure the app is deployed to Cloudflare Pages with wrangler deploy, or use wrangler dev for local testing.';
+        return;
+      }
+      
       recordFailedLoginAttempt();
       if (isLoginLocked()) {
         err.hidden = false;
@@ -930,7 +937,7 @@ function openPasswordModal(onResult) {
       }
     } catch (e) {
       err.hidden = false;
-      err.textContent = 'Server error. Please try again.';
+      err.textContent = 'Cannot reach auth server. Make sure the app is deployed to Cloudflare Pages or use wrangler dev for local testing.';
       console.error('Auth error:', e);
     }
   };
