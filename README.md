@@ -40,13 +40,12 @@ Admin changes are saved to a shared Cloudflare D1 database via a Pages Function 
    ```
 
 3. **Configure wrangler.toml:**
-   - Copy `wrangler.example.toml` to `wrangler.toml`
-   - Replace `YOUR_DATABASE_ID` with your actual database ID
+   - Open `wrangler.toml` and replace `YOUR_DATABASE_ID` with your actual database ID
    - Update the `PASSWORD_HASH` if you changed the admin password
 
 4. **Deploy:**
    ```bash
-   wrangler deploy --env production
+   wrangler pages deploy
    ```
 
 ### Important Notes
