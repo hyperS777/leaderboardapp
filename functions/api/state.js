@@ -26,16 +26,6 @@ const DEFAULT_STATE = {
   ],
 };
 
-/** Hash a password using SHA-256 (for Node.js/Cloudflare) */
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 function newNormalizeState(parsed) {
   const fallback = DEFAULT_STATE;
   if (!parsed || typeof parsed !== 'object') return fallback;
@@ -70,10 +60,8 @@ async function getOrInitState(db) {
 export async function onRequest(context) {
   const { request, env } = context;
   const db = env.DB;
-  const ADMIN_PASSWORD_HASH = env.PASSWORD_HASH;
   
   if (!db) return new Response('D1 binding DB is not configured', { status: 500 });
-  if (!ADMIN_PASSWORD_HASH) return new Response('PASSWORD_HASH is not configured', { status: 500 });
 
   if (request.method === 'GET') {
     const state = await getOrInitState(db);
@@ -90,10 +78,6 @@ export async function onRequest(context) {
     } catch {
       return new Response('Invalid JSON', { status: 400 });
     }
-
-    const password = body?.password;
-    const incomingHash = await hashPassword(password);
-    if (incomingHash !== ADMIN_PASSWORD_HASH) return new Response('Unauthorized', { status: 401 });
 
     const nextState = newNormalizeState(body?.state);
     const now = new Date().toISOString();

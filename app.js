@@ -1,12 +1,9 @@
 /** 
- * HASHED password for admin access (encrypted with SHA-256).
- * Original password: soeokok
- * To update this hash:
- * 1. Open browser console
- * 2. Run: await crypto.subtle.digest('SHA-256', new TextEncoder().encode('your-new-password')).then(h => console.log(Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('')))
- * 3. Replace the hash below with the output
+ * SECURITY NOTE: The admin password is never stored or visible in client-side code.
+ * All password verification happens on the server (Cloudflare Functions).
+ * Password is sent as plain text over HTTPS (encrypted in transit).
+ * The actual password hash is configured in wrangler.toml environment variables only.
  */
-const ADMIN_PASSWORD_HASH = 'f82989351fc244166d048a3321849ed972dc4e9d2b73924f472cc177cfef6f8a';
 
 const STORAGE_KEY = 'leaderboard-state-v1';
 const ADMIN_SESSION_KEY = 'leaderboard-admin-session';
@@ -18,16 +15,7 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 const IDB_NAME = 'leaderboard-txt-sync';
 const IDB_STORE = 'meta';
 const API_STATE_URL = '/api/state';
-
-/** Hash a password using SHA-256 */
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
+const API_AUTH_URL = '/api/auth';
 
 /** @type {FileSystemFileHandle | null} */
 let fileHandle = null;
@@ -168,7 +156,7 @@ async function saveStateToApi(nextState) {
   const res = await fetch(API_STATE_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ password: ADMIN_PASSWORD_HASH, state: nextState }),
+    body: JSON.stringify({ state: nextState }),
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => '');
@@ -905,27 +893,45 @@ function openPasswordModal(onResult) {
   const trySubmit = async () => {
     if (remainingAttempts === 0) return;
     
-    const inputHash = await hashPassword(field.value);
-    const ok = inputHash === ADMIN_PASSWORD_HASH;
-    if (ok) {
-      localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
-      localStorage.removeItem(LOGIN_LOCKOUT_KEY);
-      close();
-      onResult(true);
+    const password = field.value;
+    if (!password) {
+      err.hidden = false;
+      err.textContent = 'Please enter a password.';
       return;
     }
     
-    recordFailedLoginAttempt();
-    if (isLoginLocked()) {
+    try {
+      // Send password to server for verification (over HTTPS)
+      const res = await fetch(API_AUTH_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      
+      if (res.ok) {
+        localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+        localStorage.removeItem(LOGIN_LOCKOUT_KEY);
+        close();
+        onResult(true);
+        return;
+      }
+      
+      recordFailedLoginAttempt();
+      if (isLoginLocked()) {
+        err.hidden = false;
+        err.textContent = 'Too many attempts! Access locked for 15 minutes.';
+        overlay.querySelector('#pw-submit').disabled = true;
+      } else {
+        const remaining = getRemainingLoginAttempts();
+        err.hidden = false;
+        err.textContent = remaining === 0 
+          ? 'Incorrect password. No attempts left. Access locked for 15 minutes.'
+          : `Incorrect password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`;
+      }
+    } catch (e) {
       err.hidden = false;
-      err.textContent = 'Too many attempts! Access locked for 15 minutes.';
-      overlay.querySelector('#pw-submit').disabled = true;
-    } else {
-      const remaining = getRemainingLoginAttempts();
-      err.hidden = false;
-      err.textContent = remaining === 0 
-        ? 'Incorrect password. No attempts left. Access locked for 15 minutes.'
-        : `Incorrect password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`;
+      err.textContent = 'Server error. Please try again.';
+      console.error('Auth error:', e);
     }
   };
 
