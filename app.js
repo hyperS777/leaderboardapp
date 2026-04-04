@@ -916,6 +916,16 @@ function openPasswordModal(onResult) {
         return;
       }
       
+      // Server-side rate limiting (429 = Too Many Requests)
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({}));
+        err.hidden = false;
+        err.textContent = data.error || 'Too many failed attempts. Please try again later.';
+        overlay.querySelector('#pw-submit').disabled = true;
+        recordFailedLoginAttempt();
+        return;
+      }
+
       // If server auth fails or is unavailable, check if it's a 500+ error (server issue)
       if (res.status >= 500) {
         err.hidden = false;
@@ -924,12 +934,16 @@ function openPasswordModal(onResult) {
       }
       
       recordFailedLoginAttempt();
+      
+      // Parse server response for remaining attempts info
+      const serverData = await res.json().catch(() => ({}));
+      
       if (isLoginLocked()) {
         err.hidden = false;
         err.textContent = 'Too many attempts! Access locked for 15 minutes.';
         overlay.querySelector('#pw-submit').disabled = true;
       } else {
-        const remaining = getRemainingLoginAttempts();
+        const remaining = serverData.remaining ?? getRemainingLoginAttempts();
         err.hidden = false;
         err.textContent = remaining === 0 
           ? 'Incorrect password. No attempts left. Access locked for 15 minutes.'

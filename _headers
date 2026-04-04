@@ -1,0 +1,13 @@
+/*
+  # Prevent browsers from MIME-sniffing
+  X-Content-Type-Options: nosniff
+  # Block the page from being loaded in an iframe (clickjacking protection)
+  X-Frame-Options: DENY
+  # Enforce HTTPS
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # Prevent referrer leakage
+  Referrer-Policy: strict-origin-when-cross-origin
+  # Disable browser features that aren't needed
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  # Content Security Policy — only allow scripts from same origin
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'

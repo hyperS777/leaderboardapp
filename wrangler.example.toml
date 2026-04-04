@@ -3,7 +3,12 @@ main = "functions/api/state.js"
 compatibility_date = "2024-01-01"
 
 [env.production]
-vars = { PASSWORD_HASH = "f82989351fc244166d048a3321849ed972dc4e9d2b73924f472cc177cfef6f8a" }
+# IMPORTANT: Replace with the SHA-256 hash of YOUR chosen password.
+# To generate a hash, run in your terminal:
+#   echo -n "YOUR_PASSWORD_HERE" | sha256sum
+# Or in PowerShell:
+#   [System.BitConverter]::ToString((New-Object System.Security.Cryptography.SHA256Managed).ComputeHash([System.Text.Encoding]::UTF8.GetBytes("YOUR_PASSWORD_HERE"))).Replace("-","").ToLower()
+vars = { PASSWORD_HASH = "REPLACE_WITH_YOUR_SHA256_HASH" }
 d1_databases = [
   { binding = "DB", database_name = "leaderboard-db", database_id = "YOUR_DATABASE_ID" }
 ]
@@ -12,4 +17,5 @@ d1_databases = [
 # 1. Create a D1 database: wrangler d1 create leaderboard-db
 # 2. Get the database ID from the output and replace YOUR_DATABASE_ID above
 # 3. Initialize the schema: wrangler d1 execute leaderboard-db --file D1_SCHEMA.sql
-# 4. Deploy: wrangler deploy --env production
+# 4. Generate a SHA-256 hash for your admin password and set PASSWORD_HASH above
+# 5. Deploy: wrangler deploy --env production

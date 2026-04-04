@@ -1,0 +1,13 @@
+{
+  "name": "leaderboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Quiz Leaderboard App",
+  "scripts": {
+    "build": "node build.js",
+    "deploy": "npm run build && npx wrangler pages deploy .dist"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}
