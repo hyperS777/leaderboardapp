@@ -84,12 +84,21 @@ const IDB_STORE = 'meta';
 const API_STATE_URL = '/api/state';
 const API_AUTH_URL = '/api/auth';
 
-// Password hash for client-side verification (SHA-256, cannot be reversed)
-const _PH = 'f82989351fc244166d048a3321849ed972dc4e9d2b73924f472cc177cfef6f8a';
+// Password hash for client-side verification (PBKDF2, much harder to brute-force)
+const _PH = '74b6134403dcb7aad350cb54f1940777ab396d2ca4b6d9809c5190ef0e6ae1b7';
 
 async function _hashPw(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw", enc.encode(pw), "PBKDF2", false, ["deriveBits"]
+  );
+  const salt = new Uint8Array([161, 178, 195, 212, 229, 246, 7, 24]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: salt, iterations: 600000, hash: "SHA-256" },
+    keyMaterial,
+    256
+  );
+  return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** @type {FileSystemFileHandle | null} */
