@@ -5,6 +5,73 @@
  * The actual password hash is configured in wrangler.toml environment variables only.
  */
 
+// ── Anti-inspect / DevTools protection ──────────────────────────────
+(function() {
+  // Block right-click context menu
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  // Block keyboard shortcuts for DevTools and View Source
+  document.addEventListener('keydown', function(e) {
+    // F12
+    if (e.key === 'F12' || e.keyCode === 123) {
+      e.preventDefault();
+      return false;
+    }
+    // Ctrl+Shift+I (Inspect)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+      e.preventDefault();
+      return false;
+    }
+    // Ctrl+Shift+J (Console)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+      e.preventDefault();
+      return false;
+    }
+    // Ctrl+Shift+C (Element picker)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+      e.preventDefault();
+      return false;
+    }
+    // Ctrl+U (View Source)
+    if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+      e.preventDefault();
+      return false;
+    }
+    // Ctrl+S (Save page)
+    if (e.ctrlKey && !e.shiftKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+  // Detect DevTools via debugger timing
+  let devToolsWarned = false;
+  const checkDevTools = function() {
+    const start = performance.now();
+    debugger;
+    const elapsed = performance.now() - start;
+    if (elapsed > 100 && !devToolsWarned) {
+      devToolsWarned = true;
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a0a;color:#fff;font-family:system-ui;text-align:center;padding:2rem;"><div><h1 style="font-size:2rem;margin-bottom:1rem;">⛔ Access Denied</h1><p style="color:#999;font-size:1.1rem;">Developer tools are not allowed on this page.<br>Please close DevTools and refresh the page.</p></div></div>';
+    }
+  };
+  setInterval(checkDevTools, 2000);
+
+  // Block drag (prevents dragging images/elements to inspect)
+  document.addEventListener('dragstart', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  // Disable text selection via CSS (applied via JS to be harder to undo)
+  const style = document.createElement('style');
+  style.textContent = 'body{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;}input,textarea,select{-webkit-user-select:auto;-moz-user-select:auto;-ms-user-select:auto;user-select:auto;}';
+  document.head.appendChild(style);
+})();
+
 const STORAGE_KEY = 'leaderboard-state-v1';
 const ADMIN_SESSION_KEY = 'leaderboard-admin-session';
 const THEME_KEY = 'leaderboard-theme';
@@ -626,7 +693,10 @@ function render(state, mode, adminUnlocked) {
               <td class="col-score">
                 ${showAdmin
                   ? `<div class="points-cell">
-                      <span class="score" data-score="${team.score}">${team.score}</span>
+                      <div class="score-set-row">
+                        <input type="number" class="score-direct-input" value="${team.score}" aria-label="Set score directly" title="Type a score and press Enter or click Set" />
+                        <button type="button" class="btn btn-set-score" aria-label="Set score" title="Set score">Set</button>
+                      </div>
                       <div class="stepper">
                         <button type="button" class="minus" data-delta="-1" aria-label="Decrease score by step" title="Decrease">−</button>
                         <input type="number" class="delta-input" value="1" min="1" max="999" step="1" aria-label="Step amount by which to adjust score" title="Step amount" />
@@ -753,6 +823,35 @@ function render(state, mode, adminUnlocked) {
           });
         });
       });
+      // Manual score entry – "Set" button
+      const setBtn = row.querySelector('.btn-set-score');
+      const directInput = row.querySelector('.score-direct-input');
+      if (setBtn && directInput) {
+        const applyDirectScore = () => {
+          const team = state.teams.find((t) => t.id === id);
+          if (!team) return;
+          const val = parseInt(directInput.value, 10);
+          if (isNaN(val)) {
+            window.alert('Please enter a valid number.');
+            return;
+          }
+          team.score = val;
+          saveState(state).catch((e) => {
+            console.error('Save failed', e);
+            window.alert('Failed to save. Make sure Cloudflare Pages Functions + D1 are configured.');
+          });
+          render(state, mode, adminUnlocked);
+        };
+        setBtn.addEventListener('click', applyDirectScore);
+        directInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            applyDirectScore();
+          }
+        });
+      }
+
+      // Stepper +/- buttons
       row.querySelectorAll('.stepper button').forEach((btn) => {
         btn.addEventListener('click', () => {
           const team = state.teams.find((t) => t.id === id);
