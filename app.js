@@ -618,7 +618,7 @@ function render(state, mode, adminUnlocked) {
         <span class="brand-text">Leaderboard App</span>
       </div>
       <div class="top-bar-center">
-        <span class="made-by">~made by ibad</span>
+        <span class="made-by">~made by Ibad Hussain</span>
       </div>
       <div class="top-controls">
         <div class="mode-toggle" role="group" aria-label="View mode">
@@ -731,7 +731,7 @@ function render(state, mode, adminUnlocked) {
     </div>
 
     <footer class="app-footer">
-      <p>made by ibad</p>
+      <p>made by Ibad Hussain</p>
     </footer>
   `;
 
