@@ -84,6 +84,14 @@ const IDB_STORE = 'meta';
 const API_STATE_URL = '/api/state';
 const API_AUTH_URL = '/api/auth';
 
+// Password hash for client-side verification (SHA-256, cannot be reversed)
+const _PH = 'f82989351fc244166d048a3321849ed972dc4e9d2b73924f472cc177cfef6f8a';
+
+async function _hashPw(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** @type {FileSystemFileHandle | null} */
 let fileHandle = null;
 let txtWriteTimer = null;
@@ -1000,14 +1008,11 @@ function openPasswordModal(onResult) {
     }
     
     try {
-      // Send password to server for verification (over HTTPS)
-      const res = await fetch(API_AUTH_URL, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
+      // Verify password locally using SHA-256 hash comparison
+      const inputHash = await _hashPw(password);
       
-      if (res.ok) {
+      if (inputHash === _PH) {
+        // Password correct
         localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
         localStorage.removeItem(LOGIN_LOCKOUT_KEY);
         close();
@@ -1015,34 +1020,14 @@ function openPasswordModal(onResult) {
         return;
       }
       
-      // Server-side rate limiting (429 = Too Many Requests)
-      if (res.status === 429) {
-        const data = await res.json().catch(() => ({}));
-        err.hidden = false;
-        err.textContent = data.error || 'Too many failed attempts. Please try again later.';
-        overlay.querySelector('#pw-submit').disabled = true;
-        recordFailedLoginAttempt();
-        return;
-      }
-
-      // If server auth fails or is unavailable, check if it's a 500+ error (server issue)
-      if (res.status >= 500) {
-        err.hidden = false;
-        err.textContent = 'Server error. Please make sure the app is deployed to Cloudflare Pages with wrangler deploy, or use wrangler dev for local testing.';
-        return;
-      }
-      
+      // Wrong password
       recordFailedLoginAttempt();
-      
-      // Parse server response for remaining attempts info
-      const serverData = await res.json().catch(() => ({}));
-      
       if (isLoginLocked()) {
         err.hidden = false;
         err.textContent = 'Too many attempts! Access locked for 15 minutes.';
         overlay.querySelector('#pw-submit').disabled = true;
       } else {
-        const remaining = serverData.remaining ?? getRemainingLoginAttempts();
+        const remaining = getRemainingLoginAttempts();
         err.hidden = false;
         err.textContent = remaining === 0 
           ? 'Incorrect password. No attempts left. Access locked for 15 minutes.'
@@ -1050,7 +1035,7 @@ function openPasswordModal(onResult) {
       }
     } catch (e) {
       err.hidden = false;
-      err.textContent = 'Cannot reach auth server. Make sure the app is deployed to Cloudflare Pages or use wrangler dev for local testing.';
+      err.textContent = 'Error verifying password. Please try again.';
       console.error('Auth error:', e);
     }
   };
